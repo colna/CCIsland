@@ -125,7 +125,7 @@ export class WindowManager {
     const hasNotch = menuBarHeight > 25; // 刘海机型菜单栏 ~38px
 
     const width = state === 'compact' ? 440 : 440;
-    const height = state === 'compact' ? 36 : 420;
+    const height = state === 'compact' ? 36 : 160;
     const x = Math.round(screenW / 2 - width / 2);
 
     let y: number;

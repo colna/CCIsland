@@ -21,21 +21,12 @@ var expandedView = document.getElementById('expanded-view')!;
 var statusDot = compactView.querySelector('.status-dot')!;
 var statusText = compactView.querySelector('.status-text')!;
 var approvalsContainer = document.getElementById('approvals')!;
-var tasksContainer = document.getElementById('tasks')!;
-var recentToolsContainer = document.getElementById('recent-tools')!;
 
-// ── 点击事件 (替代 inline onclick, 避免 CSP 违规) ──
+// ── 点击事件 ──
 
 compactView.addEventListener('click', function() {
   window.claude.togglePanel('expanded');
 });
-
-var collapseBtn = document.getElementById('collapse-btn');
-if (collapseBtn) {
-  collapseBtn.addEventListener('click', function() {
-    window.claude.togglePanel('compact');
-  });
-}
 
 // ── 面板状态切换 ──
 
@@ -94,23 +85,7 @@ window.claude.onStateUpdate((state: any) => {
       break;
   }
 
-  // 更新展开态 - 头部
-  var cwdEl = expandedView.querySelector('.cwd');
-  if (cwdEl && state.cwd) {
-    cwdEl.textContent = shortenPath(state.cwd);
-  }
-
-  var elapsedEl = expandedView.querySelector('.elapsed');
-  if (elapsedEl && state.startTime) {
-    var elapsed = Math.floor((Date.now() - state.startTime) / 1000);
-    elapsedEl.textContent = formatDuration(elapsed);
-  }
-
-  // 更新任务列表
-  renderTasks(state.tasks || []);
-
-  // 更新工具历史
-  renderRecentTools(state.recentTools || []);
+  // 展开态只保留审批卡片, 无需额外更新
 });
 
 // ── 审批请求 ──
@@ -159,67 +134,14 @@ window.claude.onApprovalRequest((data: any) => {
   approvalsContainer.appendChild(card);
 });
 
-// ── 通知 ──
+// ── 通知 (简化: 在紧凑态 statusText 显示) ──
 
 window.claude.onNotification((data: any) => {
-  var toast = document.createElement('div');
-  toast.className = 'notification-toast';
-  toast.textContent = data.message || 'Notification';
-  approvalsContainer.prepend(toast);
-  setTimeout(function() { toast.remove(); }, 5000);
+  statusText.textContent = data.message || 'Notification';
+  setTimeout(function() { statusText.textContent = 'Claude Code'; }, 5000);
 });
 
-// ── 渲染函数 ──
-
-function renderTasks(tasks: any[]) {
-  if (tasks.length === 0) {
-    tasksContainer.innerHTML = '';
-    return;
-  }
-  tasksContainer.innerHTML =
-    '<div class="section-title">Tasks</div>' +
-    tasks.map(function(t: any) {
-      var icon = t.status === 'completed' ? '✓' : t.status === 'in_progress' ? '●' : '○';
-      var cls = t.status;
-      var text = t.status === 'in_progress' ? t.activeForm : t.content;
-      return '<div class="task-row"><span class="task-icon ' + escapeHtml(cls) + '">' + icon +
-        '</span><span>' + escapeHtml(text) + '</span></div>';
-    }).join('');
-}
-
-function renderRecentTools(tools: any[]) {
-  if (tools.length === 0) {
-    recentToolsContainer.innerHTML = '';
-    return;
-  }
-  recentToolsContainer.innerHTML =
-    '<div class="section-title">Recent</div>' +
-    tools.slice(-5).map(function(t: any) {
-      return '<div class="tool-row"><span class="name">' + escapeHtml(t.toolName) +
-        '</span><span class="desc">' + escapeHtml(t.description) +
-        '</span><span class="duration">' + (t.duration ? t.duration.toFixed(1) + 's' : '...') +
-        '</span></div>';
-    }).join('');
-}
-
 // ── 工具函数 ──
-
-function shortenPath(p: string) {
-  var home = '/Users/';
-  if (p.startsWith(home)) {
-    var rest = p.slice(home.length);
-    var parts = rest.split('/');
-    return '~/' + parts.slice(1).join('/');
-  }
-  return p;
-}
-
-function formatDuration(seconds: number) {
-  if (seconds < 60) return seconds + 's';
-  var m = Math.floor(seconds / 60);
-  var s = seconds % 60;
-  return m + 'm' + (s > 0 ? ' ' + s + 's' : '');
-}
 
 function escapeHtml(s: string) {
   return s
