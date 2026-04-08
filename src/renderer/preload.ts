@@ -24,12 +24,12 @@ const CH = {
 contextBridge.exposeInMainWorld('claude', {
   // ── Renderer → Main ──
 
-  approveDecision: (toolUseId: string, behavior: 'allow' | 'deny', reason?: string) =>
-    ipcRenderer.invoke(CH.APPROVAL_DECISION, { toolUseId, behavior, reason }),
+  approveDecision: (toolUseId: string, behavior: 'allow' | 'deny' | 'allowAlways', reason?: string, toolName?: string) =>
+    ipcRenderer.invoke(CH.APPROVAL_DECISION, { toolUseId, behavior, reason, toolName }),
 
   getState: () => ipcRenderer.invoke(CH.GET_STATE),
 
-  togglePanel: (state: 'compact' | 'expanded') =>
+  togglePanel: (state: 'compact' | 'expanded' | 'hidden') =>
     ipcRenderer.invoke(CH.TOGGLE_PANEL, state),
 
   // ── Main → Renderer (监听) ──

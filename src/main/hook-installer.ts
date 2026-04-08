@@ -18,9 +18,9 @@ const SETTINGS_PATH = path.join(os.homedir(), '.claude', 'settings.json');
 const HOOK_EVENTS = {
   blocking: ['PreToolUse', 'PermissionRequest'],
   notifying: [
+    'UserPromptSubmit',
     'SessionStart', 'SessionEnd', 'PostToolUse',
-    'Notification', 'TaskCreated', 'TaskCompleted',
-    'SubagentStart', 'SubagentStop', 'Stop',
+    'Notification', 'Stop',
   ],
 };
 

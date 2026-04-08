@@ -43,6 +43,28 @@ export class SessionState {
     this.lastEventTime = Date.now();
   }
 
+  handleUserPromptSubmit(event: HookEvent): void {
+    this.lastEventTime = Date.now();
+
+    // 激活会话（或复用已有会话）
+    if (!this.isActive || this.sessionId !== event.session_id) {
+      this.isActive = true;
+      this.sessionId = event.session_id;
+      this.cwd = event.cwd;
+      this.startTime = Date.now();
+      this.lastMessage = undefined;
+      this.toolCount = 0;
+      if (this.sessionId !== event.session_id) {
+        this.recentTools = [];
+        this.activityLog = [];
+        this.tasks = [];
+      }
+    }
+    if (event.cwd) this.cwd = event.cwd;
+
+    this.phase = 'thinking';
+  }
+
   handlePreToolUse(event: HookEvent): void {
     this.lastEventTime = Date.now();
 

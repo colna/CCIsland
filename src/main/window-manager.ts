@@ -2,7 +2,7 @@
  * WindowManager — 灵动岛窗口定位 + 展开/收起
  *
  * 控制 BrowserWindow 的三种状态: hidden / compact / expanded
- * - compact: 220x36 药丸状, 屏幕顶部居中 (刘海附近)
+ * - compact: 440x36 药丸状, 屏幕顶部居中 (刘海附近)
  * - expanded: 380x420 面板, 显示任务列表和审批卡片
  * - hidden: 隐藏窗口
  *
@@ -23,6 +23,7 @@ import type { ApprovalManager } from './approval-manager';
 export class WindowManager {
   private win: BrowserWindow | null = null;
   private state: PanelState = 'hidden';
+  private userDismissed = false; // 用户手动关闭后不再自动弹出
   private collapseTimer: NodeJS.Timeout | null = null;
   private hideTimer: NodeJS.Timeout | null = null;
 
@@ -40,14 +41,14 @@ export class WindowManager {
   show(state: 'compact' | 'expanded'): void {
     if (!this.win) return;
     this.clearTimers();
+    this.userDismissed = false; // 主动调用 show 时重置
 
     this.state = state;
     const bounds = this.calculateBounds(state);
-    this.win.setBounds(bounds, true);  // animate = true
-    this.win.showInactive();            // 显示但不抢焦点!
-    // Debug: 输出实际窗口位置
+    this.win.setBounds(bounds, true);
+    this.win.showInactive();
     const actual = this.win.getBounds();
-    console.log(`[WindowManager] requested y=${bounds.y}, actual y=${actual.y}, menuBar=${screen.getPrimaryDisplay().workArea.y}`);
+    console.log(`[WindowManager] state=${state}, requested y=${bounds.y}, actual y=${actual.y}, menuBar=${screen.getPrimaryDisplay().workArea.y}`);
     this.sendToRenderer(IPC_CHANNELS.PANEL_STATE, { state });
   }
 
@@ -58,6 +59,12 @@ export class WindowManager {
     this.sendToRenderer(IPC_CHANNELS.PANEL_STATE, { state: 'hidden' });
   }
 
+  /** 用户手动隐藏窗口 (不再自动弹出) */
+  dismiss(): void {
+    this.userDismissed = true;
+    this.hide();
+  }
+
   /**
    * 根据 Hook 事件自动控制展开/收起
    * 在 HookRouter.handle() 中调用
@@ -66,16 +73,20 @@ export class WindowManager {
     this.clearTimers();
 
     switch (event.hook_event_name) {
+      case 'UserPromptSubmit':
+        if (!this.userDismissed) this.show('compact');
+        break;
+
       case 'PermissionRequest':
-        this.show('expanded');
+        this.show('expanded'); // 审批必须弹出
         break;
 
       case 'SessionStart':
-        this.show('compact');
+        if (!this.userDismissed) this.show('compact');
         break;
 
       case 'PreToolUse':
-        if (this.state === 'hidden') this.show('compact');
+        if (!this.userDismissed && this.state === 'hidden') this.show('compact');
         this.scheduleCollapse(5000);
         this.scheduleHide(120_000);
         break;
@@ -85,13 +96,15 @@ export class WindowManager {
         break;
 
       case 'Notification':
-        this.show('expanded');
-        this.scheduleCollapse(3000);
+        if (!this.userDismissed) {
+          this.show('expanded');
+          this.scheduleCollapse(3000);
+        }
         break;
 
       case 'Stop':
-        // 保持 compact 显示 "✅ 任务完成" 5s
-        this.scheduleHide(5000);
+        // 保持 compact 显示结果 15s
+        this.scheduleHide(15000);
         break;
 
       case 'SessionEnd':
@@ -117,25 +130,14 @@ export class WindowManager {
     const display = screen.getPrimaryDisplay();
     const { width: screenW } = display.size;
 
-    // 检测刘海 (macOS 12+)
-    // Electron 没有直接暴露 safeAreaInsets
-    // 通过 workArea 和 size 差值推算: workArea.y = 菜单栏高度
     const workArea = display.workArea;
     const menuBarHeight = workArea.y;
-    const hasNotch = menuBarHeight > 25; // 刘海机型菜单栏 ~38px
+    const hasNotch = menuBarHeight > 25;
 
-    const width = state === 'compact' ? 440 : 440;
+    const width = 440;
     const height = state === 'compact' ? 36 : 360;
     const x = Math.round(screenW / 2 - width / 2);
-
-    let y: number;
-    if (hasNotch) {
-      // 刘海机型: 菜单栏底部 + 6px 间距, 胶囊不紧贴顶部
-      y = state === 'compact' ? menuBarHeight + 6 : menuBarHeight + 6;
-    } else {
-      // 非刘海: 菜单栏下方 4px
-      y = menuBarHeight + 4;
-    }
+    const y = hasNotch ? menuBarHeight + 6 : menuBarHeight + 4;
 
     return { x, y, width, height };
   }

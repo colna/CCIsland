@@ -14,12 +14,14 @@ import { describeToolInput } from '../shared/tool-description';
 import type { SessionState } from './session-state';
 import type { ApprovalManager } from './approval-manager';
 import type { WindowManager } from './window-manager';
+import type { TrayManager } from './tray';
 
 export class HookRouter {
   constructor(
     private sessionState: SessionState,
     private approvalManager: ApprovalManager,
-    private windowManager: WindowManager
+    private windowManager: WindowManager,
+    private trayManager: TrayManager
   ) {}
 
   /**
@@ -37,18 +39,30 @@ export class HookRouter {
       case 'SessionStart':
         this.sessionState.handleSessionStart(event);
         this.windowManager.show('compact');
+        this.trayManager.updateStatus('thinking');
+        return {};
+
+      case 'UserPromptSubmit':
+        this.sessionState.handleUserPromptSubmit(event);
+        this.windowManager.show('compact');
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
+          this.sessionState.getSnapshot());
+        this.trayManager.updateStatus('thinking', 'Thinking...');
         return {};
 
       case 'PreToolUse':
         this.sessionState.handlePreToolUse(event);
         this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
+        this.trayManager.updateStatus('tool',
+          event.tool_name ? `${event.tool_name}` : 'Executing...');
         return {};
 
       case 'PostToolUse':
         this.sessionState.handlePostToolUse(event);
         this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
+        this.trayManager.updateStatus('thinking');
         return {};
 
       case 'PermissionRequest': {
@@ -98,14 +112,17 @@ export class HookRouter {
         this.sessionState.handleStop(event);
         this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
-        // done 状态显示 5s 后隐藏, 让用户看清 "✅ 任务完成"
-        setTimeout(() => this.windowManager.hide(), 5000);
+        this.trayManager.updateStatus('done',
+          this.sessionState.lastMessage || 'Done');
+        // done 状态显示 15s 后隐藏, 让用户看清结果
+        setTimeout(() => this.windowManager.hide(), 15000);
         return {};
 
       case 'SessionEnd':
         this.sessionState.handleSessionEnd(event);
         this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
+        this.trayManager.updateStatus('idle');
         setTimeout(() => this.windowManager.hide(), 3000);
         return {};
 

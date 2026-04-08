@@ -17,7 +17,7 @@ import { WindowManager } from './window-manager';
 import { SessionState } from './session-state';
 import { ApprovalManager } from './approval-manager';
 import { setupIPC } from './ipc-handlers';
-import { createTray } from './tray';
+import { TrayManager } from './tray';
 import { installHooks, isInstalled } from './hook-installer';
 
 let mainWindow: BrowserWindow;
@@ -36,13 +36,13 @@ app.whenReady().then(async () => {
   windowManager.setWindow(mainWindow);
 
   // 系统托盘
-  createTray(mainWindow, sessionState);
+  const trayManager = new TrayManager(mainWindow, sessionState, windowManager);
 
   // IPC 通信
   setupIPC(ipcMain, approvalManager, sessionState, windowManager);
 
   // 事件路由器
-  const router = new HookRouter(sessionState, approvalManager, windowManager);
+  const router = new HookRouter(sessionState, approvalManager, windowManager, trayManager);
 
   // 启动 HTTP Hook 服务
   server = new HookServer((event) => router.handle(event));

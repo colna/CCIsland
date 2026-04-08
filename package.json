@@ -18,6 +18,9 @@
     "ts-node": "^10.9.0",
     "typescript": "5.5"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron"]
+  },
   "build": {
     "appId": "com.cc-island.app",
     "productName": "Claude Island",

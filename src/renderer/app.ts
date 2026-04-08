@@ -20,13 +20,20 @@ var compactView = document.getElementById('compact-view')!;
 var expandedView = document.getElementById('expanded-view')!;
 var statusDot = compactView.querySelector('.status-dot')!;
 var statusText = compactView.querySelector('.status-text')!;
+var closeBtn = compactView.querySelector('.close-btn')!;
 var approvalsContainer = document.getElementById('approvals')!;
 var logList = document.getElementById('log-list')!;
 var latestState: any = null; // 缓存最新状态用于渲染日志
 
-// ── 点击事件: 展开/收回 ──
+// ── 点击事件: 展开/收回/关闭 ──
 
-compactView.addEventListener('click', function() {
+closeBtn.addEventListener('click', function(e) {
+  e.stopPropagation();
+  window.claude.togglePanel('hidden');
+});
+
+compactView.addEventListener('click', function(e: MouseEvent) {
+  if ((e.target as HTMLElement).closest('.close-btn')) return;
   window.claude.togglePanel('expanded');
   if (latestState) renderLog(latestState);
 });
@@ -77,22 +84,23 @@ window.claude.onStateUpdate((state: any) => {
 
     case 'thinking': {
       // 胶囊不单独显示 thinking, 保持最后一个工具的信息
-      statusDot.className = 'status-dot active';
       statusText.className = 'status-text';
       var lastTools = state.recentTools || [];
       var last = lastTools[lastTools.length - 1];
       if (last) {
+        statusDot.className = 'status-dot active';
         statusText.textContent = last.toolName + ': ' + last.description;
       } else {
-        statusText.textContent = 'Claude Code';
+        statusDot.className = 'status-dot thinking';
+        statusText.textContent = 'Thinking...';
       }
       break;
     }
 
     case 'done':
       statusDot.className = 'status-dot done';
-      statusText.className = 'status-text';
-      statusText.textContent = '\u2705 \u4efb\u52a1\u5b8c\u6210';
+      statusText.className = 'status-text done-text';
+      statusText.textContent = state.lastMessage || 'Done';
       break;
 
     case 'idle':
@@ -121,12 +129,12 @@ window.claude.onApprovalRequest((data: any) => {
 
   var label = document.createElement('div');
   label.className = 'label';
-  label.textContent = '\u26A0 需要审批';
+  label.textContent = '\u26A0 ' + data.toolName;
   card.appendChild(label);
 
   var toolDesc = document.createElement('div');
   toolDesc.className = 'tool-desc';
-  toolDesc.textContent = data.toolName + ': ' + data.description;
+  toolDesc.textContent = data.description;
   card.appendChild(toolDesc);
 
   var actions = document.createElement('div');
@@ -134,7 +142,7 @@ window.claude.onApprovalRequest((data: any) => {
 
   var denyBtn = document.createElement('button');
   denyBtn.className = 'btn btn-deny';
-  denyBtn.textContent = '拒绝';
+  denyBtn.textContent = 'Deny';
   denyBtn.addEventListener('click', function() {
     window.claude.approveDecision(data.id, 'deny', 'Denied via Claude Island');
     card.remove();
@@ -142,14 +150,23 @@ window.claude.onApprovalRequest((data: any) => {
 
   var allowBtn = document.createElement('button');
   allowBtn.className = 'btn btn-allow';
-  allowBtn.textContent = '允许 ✓';
+  allowBtn.textContent = 'Allow';
   allowBtn.addEventListener('click', function() {
     window.claude.approveDecision(data.id, 'allow');
     card.remove();
   }, { once: true });
 
+  var allowAlwaysBtn = document.createElement('button');
+  allowAlwaysBtn.className = 'btn btn-allow-always';
+  allowAlwaysBtn.textContent = 'Always';
+  allowAlwaysBtn.addEventListener('click', function() {
+    window.claude.approveDecision(data.id, 'allowAlways', undefined, data.toolName);
+    card.remove();
+  }, { once: true });
+
   actions.appendChild(denyBtn);
   actions.appendChild(allowBtn);
+  actions.appendChild(allowAlwaysBtn);
   card.appendChild(actions);
 
   approvalsContainer.appendChild(card);

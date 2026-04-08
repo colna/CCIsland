@@ -1,5 +1,48 @@
 # Claude Island 变更记录
 
+## [0.2.0] - 2026-04-09
+
+### feat: UserPromptSubmit 事件支持
+- 注册 `UserPromptSubmit` hook 事件，用户发送消息时立即触发灵动岛
+- 即使 Claude 不调用任何工具（纯文本回复），胶囊也会以 Thinking 状态出现
+- `session-state.ts` 新增 `handleUserPromptSubmit()` 方法激活会话
+- `hook-installer.ts` 移除无效事件（TaskCreated、TaskCompleted、SubagentStart、SubagentStop）
+
+### feat: Thinking 蓝紫色样式
+- Thinking 阶段（无工具历史时）圆点使用蓝紫色 `#6e5ce6` + glow 呼吸动画
+- 与展开态日志中的 Thinking 状态条颜色一致
+
+### feat: Done 状态展示任务结果
+- 任务完成时胶囊显示 Claude 回复的第一行内容（80 字符截断）
+- 去掉 ✅ emoji，改用绿色文字 + 渐淡动画（15 秒内从全亮淡至 40% 透明度）
+- 圆点有 0.4 秒 pop 放大动画作为完成确认反馈
+- Stop 后胶囊保持 15 秒（原 5 秒）再自动隐藏
+
+### feat: 胶囊关闭按钮 + 用户手动隐藏
+- 胶囊右侧新增 `×` 关闭按钮，hover 时才显示
+- 用户手动关闭后设置 `userDismissed` 标记，后续事件不再自动弹出胶囊
+- PermissionRequest（审批）不受限制，始终强制弹出
+- 通过 tray 菜单 "Show Island" 恢复时重置标记
+
+### feat: Tray 图标动态状态
+- `tray.ts` 重构为 `TrayManager` 类
+- 图标颜色随 session phase 动态切换：灰色(idle)、蓝紫色(thinking)、绿色(tool/done)
+- tooltip 显示当前动作（如 "Claude Island — Read"、"Claude Island — Thinking..."）
+- 右键菜单第一行显示实时状态文字
+- "Show Island" 通过 `windowManager.show()` 恢复胶囊
+
+### feat: 三选项审批卡片
+- 审批按钮从 允许/拒绝 改为 Deny / Allow / Always 三选项
+- Allow: 允许本次
+- Always: 允许并永久授权，将工具名写入 `~/.claude/settings.json` 的 `permissions.allow`
+- Deny: 拒绝本次
+- 审批卡片标题改为显示工具名，描述单独一行
+
+### fix: Electron 安装 + pnpm 配置
+- `package.json` 添加 `pnpm.onlyBuiltDependencies` 配置，批准 electron 构建脚本
+
+---
+
 ## [0.1.0] - 2026-04-07
 
 ### Phase 1: MVP 核心闭环
