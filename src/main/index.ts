@@ -18,6 +18,7 @@ import { SessionState } from './session-state';
 import { ApprovalManager } from './approval-manager';
 import { setupIPC } from './ipc-handlers';
 import { createTray } from './tray';
+import { installHooks, isInstalled } from './hook-installer';
 
 let mainWindow: BrowserWindow;
 let server: HookServer;
@@ -47,11 +48,21 @@ app.whenReady().then(async () => {
   server = new HookServer((event) => router.handle(event));
   await server.start(51515);
 
+  // 自动注册 hooks 到 ~/.claude/settings.json
+  if (!isInstalled(server.port)) {
+    installHooks(server.port);
+    console.log('[Claude Island] Hooks auto-installed');
+  }
+
   console.log(`[Claude Island] Running on port ${server.port}`);
 });
 
-// 优雅关闭: 停止 HTTP 服务器释放端口 (fix #10)
+// 优雅关闭: 清理 hooks + 停止 HTTP 服务器
 app.on('will-quit', () => {
+  try {
+    const { removeHooks } = require('./hook-installer');
+    removeHooks(server?.port || 51515);
+  } catch { /* ignore */ }
   server?.stop();
 });
 
