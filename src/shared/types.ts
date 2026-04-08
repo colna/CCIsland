@@ -79,6 +79,12 @@ export interface TaskItem {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
+/** 活动日志条目 (PreToolUse / PostToolUse) */
+export interface LogEntry {
+  toolName: string;
+  description?: string; // PreToolUse 无描述, PostToolUse 有
+}
+
 /** 会话阶段 */
 export type SessionPhase = 'idle' | 'thinking' | 'tool' | 'responding' | 'done';
 
@@ -91,6 +97,7 @@ export interface SessionSnapshot {
   startTime?: number;
   currentTool?: ToolActivity;
   recentTools: ToolActivity[];
+  activityLog: LogEntry[];
   tasks: TaskItem[];
   lastMessage?: string; // Stop 事件的最后回复摘要
 }

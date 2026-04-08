@@ -158,40 +158,39 @@ window.claude.onNotification((data: any) => {
 
 function renderLog(state: any) {
   var html = '';
-  var tools = state.recentTools || [];
+  var log = state.activityLog || [];
 
-  // 已完成的工具
-  for (var i = 0; i < tools.length; i++) {
-    var t = tools[i];
-    var desc = t.description ? ' <code>' + escapeHtml(t.description) + '</code>' : '';
-    html += '<div class="log-line done">' +
-      '<span class="dot dot-done"></span>' +
-      '<b>' + escapeHtml(t.toolName) + '</b>' + desc +
-      '</div>';
+  // 全部日志条目 (Pre: 只有工具名, Post: 工具名+描述)
+  for (var i = 0; i < log.length; i++) {
+    var entry = log[i];
+    if (entry.description) {
+      // PostToolUse: 绿色圆点 + 工具名 + 描述
+      html += '<div class="log-line done">' +
+        '<span class="dot dot-done"></span>' +
+        '<b>' + escapeHtml(entry.toolName) + '</b> <code>' + escapeHtml(entry.description) + '</code>' +
+        '</div>';
+    } else {
+      // PreToolUse: 绿色圆点 + 仅工具名
+      html += '<div class="log-line done">' +
+        '<span class="dot dot-done"></span>' +
+        '<b>' + escapeHtml(entry.toolName) + '</b>' +
+        '</div>';
+    }
   }
 
-  // 当前正在执行的工具
-  if (state.currentTool) {
-    var cdesc = state.currentTool.description ? ' <code>' + escapeHtml(state.currentTool.description) + '</code>' : '';
-    html += '<div class="log-line running">' +
-      '<span class="dot dot-running"></span>' +
-      '<b>' + escapeHtml(state.currentTool.toolName) + '</b>' + cdesc +
-      '</div>';
-  }
-
-  // Thinking
-  if (state.phase === 'thinking') {
-    html += '<div class="log-line thinking">' +
-      '<span class="dot dot-thinking"></span>' +
-      '<b>Thinking...</b>' +
-      '</div>';
-  }
-
-  // 完成
+  // 完成状态
   if (state.phase === 'done') {
     html += '<div class="log-line complete">' +
       '<span class="dot dot-complete"></span>' +
       '<b>Complete</b>' +
+      '</div>';
+  }
+
+  // 底部 Thinking 状态条
+  if (state.phase === 'thinking' || state.phase === 'tool') {
+    html += '<div class="log-thinking-bar">' +
+      '<span class="dot dot-thinking"></span>' +
+      '<span>Thinking...</span>' +
       '</div>';
   }
 

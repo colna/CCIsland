@@ -9,7 +9,7 @@
  * - 会话元信息 (ID, CWD, 开始时间)
  */
 
-import type { HookEvent, SessionSnapshot, ToolActivity, TaskItem, SessionPhase } from '../shared/types';
+import type { HookEvent, SessionSnapshot, ToolActivity, TaskItem, SessionPhase, LogEntry } from '../shared/types';
 import { describeToolInput } from '../shared/tool-description';
 
 const MAX_RECENT_TOOLS = 200; // 保留会话全部日志
@@ -22,6 +22,7 @@ export class SessionState {
   startTime?: number;
   currentTool?: ToolActivity;
   recentTools: ToolActivity[] = [];
+  activityLog: LogEntry[] = [];
   tasks: TaskItem[] = [];
   lastEventTime?: number;
   lastMessage?: string;
@@ -35,6 +36,7 @@ export class SessionState {
     this.startTime = Date.now();
     this.currentTool = undefined;
     this.recentTools = [];
+    this.activityLog = [];
     this.tasks = [];
     this.lastMessage = undefined;
     this.toolCount = 0;
@@ -54,6 +56,7 @@ export class SessionState {
       this.toolCount = 0;
       if (this.sessionId !== event.session_id) {
         this.recentTools = [];
+        this.activityLog = [];
         this.tasks = [];
       }
     }
@@ -62,6 +65,9 @@ export class SessionState {
     this.phase = 'tool';
     this.toolCount++;
     const input = event.tool_input || {};
+
+    // PreToolUse: 只记录工具名
+    this.activityLog.push({ toolName: event.tool_name || 'Unknown' });
 
     this.currentTool = {
       id: event.tool_use_id || `tool-${Date.now()}`,
@@ -83,6 +89,12 @@ export class SessionState {
       this.currentTool.endTime = Date.now();
       this.currentTool.duration = (this.currentTool.endTime - this.currentTool.startTime) / 1000;
       this.currentTool.status = 'completed';
+
+      // PostToolUse: 工具名 + 描述
+      this.activityLog.push({
+        toolName: this.currentTool.toolName,
+        description: this.currentTool.description,
+      });
 
       // 移入历史
       this.recentTools.push({ ...this.currentTool });
@@ -147,6 +159,7 @@ export class SessionState {
       startTime: this.startTime,
       currentTool: this.currentTool ? { ...this.currentTool } : undefined,
       recentTools: [...this.recentTools],
+      activityLog: [...this.activityLog],
       tasks: [...this.tasks],
       lastMessage: this.lastMessage,
     };
