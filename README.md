@@ -44,21 +44,31 @@ Claude Code (HTTP Hook) ──POST──▶ HookServer (:51515)
 ### 前置要求
 
 - macOS 14 (Sonoma) 或更高版本
-- Node.js 18+
-- pnpm
 - Claude Code CLI 已安装
 
-### 安装与运行
+### 安装
+
+**方式一：一键安装（推荐）**
 
 ```bash
-# 克隆仓库
+curl -fsSL https://raw.githubusercontent.com/presence-io/cc-island/main/install.sh | bash
+```
+
+自动检测 CPU 架构（Apple Silicon / Intel），下载对应版本并安装到 `/Applications`。
+
+**方式二：手动下载**
+
+前往 [Releases](https://github.com/presence-io/cc-island/releases) 页面，下载对应架构的 DMG 或 ZIP：
+
+- `Claude Island-*-arm64.dmg` — Apple Silicon (M1/M2/M3/M4)
+- `Claude Island-*.dmg` — Intel
+
+**方式三：从源码构建**
+
+```bash
 git clone https://github.com/presence-io/cc-island.git
 cd cc-island
-
-# 安装依赖
 pnpm install --dev
-
-# 开发模式运行
 pnpm dev
 ```
 
@@ -126,13 +136,23 @@ src/
     └── tool-description.ts  # 工具描述生成
 ```
 
-## 构建
+## 构建与发布
 
 ```bash
-# 编译 TypeScript + Less
-pnpm build
+# 开发模式
+pnpm dev
 
-# 输出 dist/ 目录 + DMG 安装包
+# 编译 TypeScript + Less + 打包 DMG/ZIP
+pnpm build
+```
+
+### 自动发布
+
+推送 `v*` 标签时，GitHub Actions 自动构建 arm64 + x64 的 DMG 和 ZIP 并创建 Release：
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 ## 技术栈
