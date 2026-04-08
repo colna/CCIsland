@@ -20,7 +20,7 @@ import { setupIPC } from './ipc-handlers';
 import { createTray } from './tray';
 
 let mainWindow: BrowserWindow;
-let tray: Tray;
+let tray: Tray | null = null;
 
 const sessionState = new SessionState();
 const approvalManager = new ApprovalManager();
@@ -88,7 +88,4 @@ function createIslandWindow(): BrowserWindow {
 }
 
 // 防止 App 完全退出 (窗口关闭后仍在菜单栏运行)
-app.on('window-all-closed', (e: Event) => e.preventDefault());
-
-// 确保 tray 不被垃圾回收
-void tray;
+app.on('window-all-closed', () => { /* noop */ });

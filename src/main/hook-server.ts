@@ -6,8 +6,9 @@
  */
 
 import http from 'node:http';
+import type { HookEvent, HookResponse } from '../shared/types';
 
-export type RequestHandler = (event: Record<string, any>) => Promise<Record<string, any>>;
+export type RequestHandler = (event: HookEvent) => Promise<HookResponse>;
 
 export class HookServer {
   private server: http.Server | null = null;
@@ -101,7 +102,7 @@ export class HookServer {
 
   private async handleHook(body: string, res: http.ServerResponse): Promise<void> {
     try {
-      const event = JSON.parse(body);
+      const event = JSON.parse(body) as HookEvent;
       // handler 可能会阻塞 (审批等待), 这是设计如此
       const response = await this.handler(event);
       res.writeHead(200, { 'Content-Type': 'application/json' });

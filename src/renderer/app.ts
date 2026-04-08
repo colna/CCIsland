@@ -5,6 +5,8 @@
  * 处理: 面板状态切换, 会话状态更新, 审批请求, 通知
  */
 
+export {};
+
 declare global {
   interface Window {
     claude: {
