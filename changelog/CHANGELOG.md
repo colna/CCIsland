@@ -57,3 +57,40 @@
 - `app.ts`: 审批按钮使用 `{ once: true }` 防止重复点击 (fix #8); DOM API 替代 innerHTML (fix #16)
 - 全局: 所有模块统一使用 `IPC_CHANNELS` 常量替代硬编码字符串 (fix #14)
 - `window-manager.ts`: 从 shared/types 导入 `PanelState` 消除重复定义 (fix #17)
+
+#### Step 10: 重构 — 包管理器 + 样式系统
+- npm → pnpm 切换, 添加 `pnpm-lock.yaml`
+- 样式从 CSS 迁移至 Less (`styles.css` → `styles.less`)
+
+#### Step 11: 文档
+- 更新 README — 产品介绍、工作原理、使用方式
+
+#### Step 12: 窗口定位 + Hook 自动化
+- 灵动岛窗口使用 `screen-saver` level, 覆盖菜单栏/刘海区域
+- 应用启动时自动注册 hooks (`app.whenReady`), 退出时自动清理 (`will-quit`)
+
+#### Step 13: 运行时修复
+- 修复 renderer `app.js` CommonJS exports 报错, 添加 `window.d.ts` 类型声明
+- `preload.ts` 沙箱兼容 + CSP 合规 (去除 inline script, contextIsolation 适配)
+- 药丸与刘海融合样式调整 + renderer 调试日志
+- `PreToolUse` 事件自动激活会话 + 关闭 DevTools
+
+#### Step 14: 会话阶段追踪
+- 新增 `SessionPhase` 类型 (`idle` / `thinking` / `tool_use` / `done`)
+- `HookRouter` 解析 Claude 事件映射至对应 phase
+- `SessionState` 维护 phase 状态, 通过 IPC 通知 renderer
+- Renderer 药丸 UI 同步显示当前阶段
+- 药丸加宽显示完整文本, 改进 thinking 动画样式, done 阶段展示完成消息
+
+#### Step 15: 药丸融合 + 展开态精简
+- 药丸推入菜单栏区域, 与刘海视觉融合
+- 精简展开态视��, 仅保留审批卡片
+- 药丸改为胶囊造型 (capsule shape), 审批面板全圆角, 去除边框
+
+#### Step 16: 会话活动日志
+- 点击胶囊展开面板, 显示当前会话所有工具调用记录
+- 日志条目包含: 工具名、描述、耗时、状态图标
+- 运行中工具显示蓝色脉冲点, thinking 显示紫色光晕
+- done 状态在底部显示完成消息
+- 自动滚动至最新条目, 展开时实时更新
+- 展开高度 360px, 每会话最多 200 条工具记录
