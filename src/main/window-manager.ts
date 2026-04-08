@@ -45,6 +45,9 @@ export class WindowManager {
     const bounds = this.calculateBounds(state);
     this.win.setBounds(bounds, true);  // animate = true
     this.win.showInactive();            // 显示但不抢焦点!
+    // Debug: 输出实际窗口位置
+    const actual = this.win.getBounds();
+    console.log(`[WindowManager] requested y=${bounds.y}, actual y=${actual.y}, menuBar=${screen.getPrimaryDisplay().workArea.y}`);
     this.sendToRenderer(IPC_CHANNELS.PANEL_STATE, { state });
   }
 
@@ -86,8 +89,12 @@ export class WindowManager {
         this.scheduleCollapse(3000);
         break;
 
-      case 'SessionEnd':
       case 'Stop':
+        // 保持 compact 显示 "✅ 任务完成" 5s
+        this.scheduleHide(5000);
+        break;
+
+      case 'SessionEnd':
         this.scheduleCollapse(1000);
         this.scheduleHide(3000);
         break;
@@ -123,9 +130,10 @@ export class WindowManager {
 
     let y: number;
     if (hasNotch) {
-      // 刘海机型: 紧贴屏幕顶部 (与刘海黑色区域融合)
-      // compact 高度 36px ≈ 刘海高度 38px, 视觉上嵌入刘海
-      y = state === 'compact' ? 0 : 4;
+      // 刘海机型: 用负值把窗口推进菜单栏区域, 尽量贴近刘海底部
+      // menuBarHeight ≈ 37~38, 刘海底部 ≈ menuBarHeight - 6
+      // 窗口 y = menuBarHeight - pillHeight 把药丸底部对齐菜单栏底部
+      y = state === 'compact' ? menuBarHeight - height : menuBarHeight - height + 4;
     } else {
       // 非刘海: 菜单栏下方 4px
       y = menuBarHeight + 4;

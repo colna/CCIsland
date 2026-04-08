@@ -70,11 +70,17 @@ function createIslandWindow(): BrowserWindow {
   const display = screen.getPrimaryDisplay();
   const { width: screenWidth } = display.size;
 
+  // 计算刘海机型的 y 偏移: 把药丸推进菜单栏区域
+  const workArea = display.workArea;
+  const menuBarH = workArea.y;
+  const hasNotch = menuBarH > 25;
+  const initialY = hasNotch ? menuBarH - 36 : menuBarH + 4;
+
   const win = new BrowserWindow({
     width: 440,
     height: 36,
     x: Math.round(screenWidth / 2 - 220),
-    y: 0,
+    y: initialY,
 
     frame: false,
     transparent: true,

@@ -98,8 +98,8 @@ export class HookRouter {
         this.sessionState.handleStop(event);
         this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
-        // done 状态显示 3s 后隐藏
-        setTimeout(() => this.windowManager.hide(), 3000);
+        // done 状态显示 5s 后隐藏, 让用户看清 "✅ 任务完成"
+        setTimeout(() => this.windowManager.hide(), 5000);
         return {};
 
       case 'SessionEnd':
