@@ -94,8 +94,15 @@ export class HookRouter {
         setTimeout(() => this.windowManager.show('compact'), 3000);
         return {};
 
-      case 'SessionEnd':
       case 'Stop':
+        this.sessionState.handleStop(event);
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
+          this.sessionState.getSnapshot());
+        // done 状态显示 3s 后隐藏
+        setTimeout(() => this.windowManager.hide(), 3000);
+        return {};
+
+      case 'SessionEnd':
         this.sessionState.handleSessionEnd(event);
         this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());

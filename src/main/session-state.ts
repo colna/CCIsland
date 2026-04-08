@@ -2,19 +2,21 @@
  * SessionState — 会话状态管理
  *
  * 跟踪 Claude Code 会话的运行状态:
+ * - phase: idle → thinking → tool → thinking → tool → responding → done
  * - 当前正在执行的工具
  * - 最近的工具历史 (最近 8 条)
  * - 任务列表进度
  * - 会话元信息 (ID, CWD, 开始时间)
  */
 
-import type { HookEvent, SessionSnapshot, ToolActivity, TaskItem } from '../shared/types';
+import type { HookEvent, SessionSnapshot, ToolActivity, TaskItem, SessionPhase } from '../shared/types';
 import { describeToolInput } from '../shared/tool-description';
 
 const MAX_RECENT_TOOLS = 8;
 
 export class SessionState {
   isActive = false;
+  phase: SessionPhase = 'idle';
   sessionId?: string;
   cwd?: string;
   startTime?: number;
@@ -22,15 +24,20 @@ export class SessionState {
   recentTools: ToolActivity[] = [];
   tasks: TaskItem[] = [];
   lastEventTime?: number;
+  lastMessage?: string;
+  toolCount = 0; // 本次会话工具调用计数
 
   handleSessionStart(event: HookEvent): void {
     this.isActive = true;
+    this.phase = 'thinking';
     this.sessionId = event.session_id;
     this.cwd = event.cwd;
     this.startTime = Date.now();
     this.currentTool = undefined;
     this.recentTools = [];
     this.tasks = [];
+    this.lastMessage = undefined;
+    this.toolCount = 0;
     this.lastEventTime = Date.now();
   }
 
@@ -43,6 +50,8 @@ export class SessionState {
       this.sessionId = event.session_id;
       this.cwd = event.cwd;
       this.startTime = Date.now();
+      this.lastMessage = undefined;
+      this.toolCount = 0;
       if (this.sessionId !== event.session_id) {
         this.recentTools = [];
         this.tasks = [];
@@ -50,6 +59,8 @@ export class SessionState {
     }
     if (event.cwd) this.cwd = event.cwd;
 
+    this.phase = 'tool';
+    this.toolCount++;
     const input = event.tool_input || {};
 
     this.currentTool = {
@@ -64,6 +75,9 @@ export class SessionState {
   handlePostToolUse(event: HookEvent): void {
     this.lastEventTime = Date.now();
     if (event.cwd) this.cwd = event.cwd;
+
+    // 工具完成后进入 thinking (等待下一个工具或回复)
+    this.phase = 'thinking';
 
     if (this.currentTool && this.currentTool.id === event.tool_use_id) {
       this.currentTool.endTime = Date.now();
@@ -83,6 +97,7 @@ export class SessionState {
   handlePermissionRequest(event: HookEvent): void {
     this.lastEventTime = Date.now();
     if (event.cwd) this.cwd = event.cwd;
+    this.phase = 'tool'; // 等待审批也算工具阶段
   }
 
   handleTaskCreated(event: HookEvent): void {
@@ -97,9 +112,28 @@ export class SessionState {
     this.lastEventTime = Date.now();
   }
 
+  handleStop(event: HookEvent): void {
+    this.lastEventTime = Date.now();
+    this.phase = 'done';
+
+    // 提取最后消息摘要 (第一行, 最多 80 字符)
+    if (event.last_assistant_message) {
+      const firstLine = event.last_assistant_message
+        .replace(/\*\*/g, '')  // 去除 markdown 粗体
+        .replace(/[#*`]/g, '') // 去除 markdown 标记
+        .split('\n')
+        .filter((l: string) => l.trim().length > 0)[0] || '';
+      this.lastMessage = firstLine.length > 80
+        ? firstLine.slice(0, 77) + '...'
+        : firstLine;
+    }
+  }
+
   handleSessionEnd(_event: HookEvent): void {
     this.isActive = false;
+    this.phase = 'idle';
     this.currentTool = undefined;
+    this.lastMessage = undefined;
     this.lastEventTime = Date.now();
   }
 
@@ -107,16 +141,18 @@ export class SessionState {
   getSnapshot(): SessionSnapshot {
     return {
       isActive: this.isActive,
+      phase: this.phase,
       sessionId: this.sessionId,
       cwd: this.cwd,
       startTime: this.startTime,
       currentTool: this.currentTool ? { ...this.currentTool } : undefined,
       recentTools: [...this.recentTools],
       tasks: [...this.tasks],
+      lastMessage: this.lastMessage,
     };
   }
 
-  /** 从事件更新任务列表 (DRY: TaskCreated 和 TaskCompleted 共用) (fix #6) */
+  /** 从事件更新任务列表 */
   private updateTasksFromEvent(event: HookEvent): void {
     this.lastEventTime = Date.now();
     const input = event.tool_input || {};

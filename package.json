@@ -21,6 +21,10 @@
   "build": {
     "appId": "com.cc-island.app",
     "productName": "Claude Island",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": [

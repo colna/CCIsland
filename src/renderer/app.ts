@@ -61,16 +61,33 @@ window.claude.onPanelState((data: any) => {
 
 window.claude.onStateUpdate((state: any) => {
   console.log('[app] stateUpdate:', JSON.stringify(state).slice(0, 200));
-  // 更新紧凑态
-  if (state.currentTool) {
-    statusDot.className = 'status-dot active';
-    statusText.textContent = `${state.currentTool.toolName}: ${state.currentTool.description}`;
-  } else if (state.isActive) {
-    statusDot.className = 'status-dot active';
-    statusText.textContent = 'Claude Code';
-  } else {
-    statusDot.className = 'status-dot';
-    statusText.textContent = 'Claude Code';
+
+  // ── 紧凑态：按 phase 显示不同内容 ──
+  switch (state.phase) {
+    case 'tool':
+      statusDot.className = 'status-dot active';
+      if (state.currentTool) {
+        statusText.textContent = state.currentTool.toolName + ': ' + state.currentTool.description;
+      } else {
+        statusText.textContent = 'Executing...';
+      }
+      break;
+
+    case 'thinking':
+      statusDot.className = 'status-dot thinking';
+      statusText.textContent = 'Thinking...';
+      break;
+
+    case 'done':
+      statusDot.className = 'status-dot done';
+      statusText.textContent = state.lastMessage || 'Done';
+      break;
+
+    case 'idle':
+    default:
+      statusDot.className = 'status-dot';
+      statusText.textContent = 'Claude Code';
+      break;
   }
 
   // 更新展开态 - 头部

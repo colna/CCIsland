@@ -82,7 +82,9 @@ body {
   flex-shrink: 0;
 
   &.active { background: @color-green; }
+  &.thinking { background: @color-blue; animation: pulse 1.5s infinite; }
   &.pending { background: @color-orange; animation: pulse 1.5s infinite; }
+  &.done { background: @color-green; }
   &.idle { background: #666; }
 }
 

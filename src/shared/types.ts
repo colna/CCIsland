@@ -23,6 +23,11 @@ export interface HookEvent {
 
   // 通知
   notification_message?: string;
+
+  // Stop 事件
+  last_assistant_message?: string;
+  stop_hook_active?: boolean;
+  reason?: string;
 }
 
 /** 返回给 Claude Code 的 Hook 响应 */
@@ -74,15 +79,20 @@ export interface TaskItem {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
+/** 会话阶段 */
+export type SessionPhase = 'idle' | 'thinking' | 'tool' | 'responding' | 'done';
+
 /** 会话快照 (Main → Renderer) */
 export interface SessionSnapshot {
   isActive: boolean;
+  phase: SessionPhase;
   sessionId?: string;
   cwd?: string;
   startTime?: number;
   currentTool?: ToolActivity;
   recentTools: ToolActivity[];
   tasks: TaskItem[];
+  lastMessage?: string; // Stop 事件的最后回复摘要
 }
 
 /** 面板状态 */
