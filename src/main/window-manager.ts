@@ -130,10 +130,8 @@ export class WindowManager {
 
     let y: number;
     if (hasNotch) {
-      // 刘海机型: 用负值把窗口推进菜单栏区域, 尽量贴近刘海底部
-      // menuBarHeight ≈ 37~38, 刘海底部 ≈ menuBarHeight - 6
-      // 窗口 y = menuBarHeight - pillHeight 把药丸底部对齐菜单栏底部
-      y = state === 'compact' ? menuBarHeight - height : menuBarHeight - height + 4;
+      // 刘海机型: 菜单栏底部 + 6px 间距, 胶囊不紧贴顶部
+      y = state === 'compact' ? menuBarHeight + 6 : menuBarHeight + 6;
     } else {
       // 非刘海: 菜单栏下方 4px
       y = menuBarHeight + 4;

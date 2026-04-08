@@ -74,7 +74,7 @@ function createIslandWindow(): BrowserWindow {
   const workArea = display.workArea;
   const menuBarH = workArea.y;
   const hasNotch = menuBarH > 25;
-  const initialY = hasNotch ? menuBarH - 36 : menuBarH + 4;
+  const initialY = hasNotch ? menuBarH + 6 : menuBarH + 4;
 
   const win = new BrowserWindow({
     width: 440,
