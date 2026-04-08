@@ -66,6 +66,7 @@ window.claude.onStateUpdate((state: any) => {
   switch (state.phase) {
     case 'tool':
       statusDot.className = 'status-dot active';
+      statusText.className = 'status-text';
       if (state.currentTool) {
         statusText.textContent = state.currentTool.toolName + ': ' + state.currentTool.description;
       } else {
@@ -75,17 +76,20 @@ window.claude.onStateUpdate((state: any) => {
 
     case 'thinking':
       statusDot.className = 'status-dot thinking';
+      statusText.className = 'status-text shimmer';
       statusText.textContent = 'Thinking...';
       break;
 
     case 'done':
       statusDot.className = 'status-dot done';
-      statusText.textContent = state.lastMessage || 'Done';
+      statusText.className = 'status-text';
+      statusText.textContent = '\u2705 \u4efb\u52a1\u5b8c\u6210';
       break;
 
     case 'idle':
     default:
       statusDot.className = 'status-dot';
+      statusText.className = 'status-text';
       statusText.textContent = 'Claude Code';
       break;
   }

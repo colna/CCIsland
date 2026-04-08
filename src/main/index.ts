@@ -71,9 +71,9 @@ function createIslandWindow(): BrowserWindow {
   const { width: screenWidth } = display.size;
 
   const win = new BrowserWindow({
-    width: 220,
+    width: 440,
     height: 36,
-    x: Math.round(screenWidth / 2 - 110),
+    x: Math.round(screenWidth / 2 - 220),
     y: 0,
 
     frame: false,
