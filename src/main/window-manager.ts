@@ -123,8 +123,9 @@ export class WindowManager {
 
     let y: number;
     if (hasNotch) {
-      // 刘海机型: 从屏幕顶部开始 (与刘海融合)
-      y = 0;
+      // 刘海机型: 紧贴屏幕顶部 (与刘海黑色区域融合)
+      // compact 高度 36px ≈ 刘海高度 38px, 视觉上嵌入刘海
+      y = state === 'compact' ? 0 : 4;
     } else {
       // 非刘海: 菜单栏下方 4px
       y = menuBarHeight + 4;

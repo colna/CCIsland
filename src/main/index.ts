@@ -74,6 +74,7 @@ function createIslandWindow(): BrowserWindow {
     resizable: false,
     movable: false,
     show: false,
+    type: 'panel', // macOS: 面板级窗口, 不激活父应用
 
     webPreferences: {
       preload: path.join(__dirname, '..', 'renderer', 'preload.js'),
@@ -84,6 +85,9 @@ function createIslandWindow(): BrowserWindow {
 
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  // screen-saver level: 覆盖菜单栏/刘海区域
+  win.setAlwaysOnTop(true, 'screen-saver');
 
   return win;
 }
