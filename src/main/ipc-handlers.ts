@@ -8,6 +8,7 @@
  */
 
 import type { IpcMain } from 'electron';
+import { IPC_CHANNELS } from '../shared/types';
 import type { ApprovalManager } from './approval-manager';
 import type { SessionState } from './session-state';
 import type { WindowManager } from './window-manager';
@@ -19,7 +20,7 @@ export function setupIPC(
   windowManager: WindowManager
 ): void {
   // Renderer → Main: 用户点击了审批按钮
-  ipcMain.handle('approval-decision', (_event, data: {
+  ipcMain.handle(IPC_CHANNELS.APPROVAL_DECISION, (_event, data: {
     toolUseId: string;
     behavior: 'allow' | 'deny';
     reason?: string;
@@ -38,12 +39,12 @@ export function setupIPC(
   });
 
   // Renderer → Main: 请求当前状态快照
-  ipcMain.handle('get-state', () => {
+  ipcMain.handle(IPC_CHANNELS.GET_STATE, () => {
     return sessionState.getSnapshot();
   });
 
   // Renderer → Main: 用户点击展开/收起
-  ipcMain.handle('toggle-panel', (_event, state: 'compact' | 'expanded') => {
+  ipcMain.handle(IPC_CHANNELS.TOGGLE_PANEL, (_event, state: 'compact' | 'expanded') => {
     windowManager.show(state);
   });
 }

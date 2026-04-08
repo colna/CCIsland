@@ -9,6 +9,7 @@
  */
 
 import type { HookEvent, SessionSnapshot, ToolActivity, TaskItem } from '../shared/types';
+import { describeToolInput } from '../shared/tool-description';
 
 const MAX_RECENT_TOOLS = 8;
 
@@ -40,7 +41,7 @@ export class SessionState {
     this.currentTool = {
       id: event.tool_use_id || `tool-${Date.now()}`,
       toolName: event.tool_name || 'Unknown',
-      description: this.describeToolInput(event.tool_name, input),
+      description: describeToolInput(event.tool_name, input, (p) => this.shortenPath(p)),
       startTime: Date.now(),
       status: 'running',
     };
@@ -66,39 +67,18 @@ export class SessionState {
 
   handlePermissionRequest(event: HookEvent): void {
     this.lastEventTime = Date.now();
-    // 更新 CWD (如果有)
     if (event.cwd) this.cwd = event.cwd;
   }
 
   handleTaskCreated(event: HookEvent): void {
-    this.lastEventTime = Date.now();
-    // TaskCreated 事件可能包含 task list (需要根据实际 payload 调整)
-    const input = event.tool_input || {};
-    if (input.todos && Array.isArray(input.todos)) {
-      this.tasks = input.todos.map((t: any) => ({
-        id: t.id || `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        content: t.content || '',
-        activeForm: t.activeForm || t.content || '',
-        status: t.status || 'pending',
-      }));
-    }
+    this.updateTasksFromEvent(event);
   }
 
   handleTaskCompleted(event: HookEvent): void {
-    this.lastEventTime = Date.now();
-    // 类似 TaskCreated, 更新 task list
-    const input = event.tool_input || {};
-    if (input.todos && Array.isArray(input.todos)) {
-      this.tasks = input.todos.map((t: any) => ({
-        id: t.id || `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        content: t.content || '',
-        activeForm: t.activeForm || t.content || '',
-        status: t.status || 'pending',
-      }));
-    }
+    this.updateTasksFromEvent(event);
   }
 
-  handleNotification(event: HookEvent): void {
+  handleNotification(_event: HookEvent): void {
     this.lastEventTime = Date.now();
   }
 
@@ -121,41 +101,25 @@ export class SessionState {
     };
   }
 
-  /** 从 tool_input 生成人类可读描述 */
-  private describeToolInput(toolName: string | undefined, input: Record<string, any>): string {
-    switch (toolName) {
-      case 'Bash':
-        return (input.command as string || 'shell command').slice(0, 80);
-      case 'Read':
-        return this.shortenPath(input.file_path as string || 'file');
-      case 'Write':
-        return this.shortenPath(input.file_path as string || 'file');
-      case 'Edit':
-        return this.shortenPath(input.file_path as string || 'file');
-      case 'Glob':
-        return input.pattern as string || 'pattern';
-      case 'Grep':
-        return `"${input.pattern || ''}" in ${this.shortenPath(input.path as string || 'cwd')}`;
-      case 'WebFetch':
-        return (input.url as string || 'URL').slice(0, 60);
-      case 'WebSearch':
-        return input.query as string || 'search';
-      case 'Task':
-        return input.description as string || 'subagent task';
-      case 'TodoWrite':
-        return 'update task list';
-      default:
-        return toolName || 'unknown';
+  /** 从事件更新任务列表 (DRY: TaskCreated 和 TaskCompleted 共用) (fix #6) */
+  private updateTasksFromEvent(event: HookEvent): void {
+    this.lastEventTime = Date.now();
+    const input = event.tool_input || {};
+    if (input.todos && Array.isArray(input.todos)) {
+      this.tasks = input.todos.map((t: any) => ({
+        id: t.id || `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        content: t.content || '',
+        activeForm: t.activeForm || t.content || '',
+        status: t.status || 'pending',
+      }));
     }
   }
 
   private shortenPath(p: string): string {
-    // ~/xxx 格式缩短
     const home = process.env.HOME || '/Users/user';
     if (p.startsWith(home)) {
       return '~' + p.slice(home.length);
     }
-    // 只保留最后两级目录
     const parts = p.split('/');
     if (parts.length > 3) {
       return '.../' + parts.slice(-2).join('/');

@@ -16,10 +16,9 @@
  */
 
 import { BrowserWindow, screen } from 'electron';
-import type { HookEvent } from '../shared/types';
+import type { HookEvent, PanelState } from '../shared/types';
+import { IPC_CHANNELS } from '../shared/types';
 import type { ApprovalManager } from './approval-manager';
-
-type PanelState = 'hidden' | 'compact' | 'expanded';
 
 export class WindowManager {
   private win: BrowserWindow | null = null;
@@ -46,14 +45,14 @@ export class WindowManager {
     const bounds = this.calculateBounds(state);
     this.win.setBounds(bounds, true);  // animate = true
     this.win.showInactive();            // 显示但不抢焦点!
-    this.sendToRenderer('panel-state', { state });
+    this.sendToRenderer(IPC_CHANNELS.PANEL_STATE, { state });
   }
 
   /** 隐藏窗口 */
   hide(): void {
     this.state = 'hidden';
     this.win?.hide();
-    this.sendToRenderer('panel-state', { state: 'hidden' });
+    this.sendToRenderer(IPC_CHANNELS.PANEL_STATE, { state: 'hidden' });
   }
 
   /**

@@ -41,3 +41,19 @@
 #### Step 8: 编译验证
 - TypeScript 编译通过 (zero errors)
 - 所有模块编译输出到 `dist/` 目录
+
+#### Step 9: 代码规范审查 + 修复 (vercel-react-best-practices)
+
+**HIGH 修复:**
+- `preload.ts`: IPC 监听器注册前清除旧监听器, 防止热重载内存泄漏 (fix #7)
+- `hook-server.ts`: 添加 1MB body 大小限制 + 413 响应 (fix #9); stringify 先于 writeHead 防止部分响应 (fix #11); headersSent 保护
+- `index.ts`: 添加 `will-quit` 优雅关闭 HTTP 服务器释放端口 (fix #10)
+
+**MEDIUM 修复:**
+- 提取 `src/shared/tool-description.ts` 共享模块, 消除 session-state / hook-router 重复代码 (fix #5 DRY)
+- `session-state.ts`: 抽取 `updateTasksFromEvent()` 减少 handleTaskCreated/Completed 重复 (fix #6)
+- `hook-installer.ts`: 添加内存缓存避免每次读磁盘 (fix #3); 精确匹配 hook URL 替代 JSON.stringify (fix #13)
+- `tray.ts`: install/remove 后调用 `invalidateCache()` 保持缓存一致
+- `app.ts`: 审批按钮使用 `{ once: true }` 防止重复点击 (fix #8); DOM API 替代 innerHTML (fix #16)
+- 全局: 所有模块统一使用 `IPC_CHANNELS` 常量替代硬编码字符串 (fix #14)
+- `window-manager.ts`: 从 shared/types 导入 `PanelState` 消除重复定义 (fix #17)

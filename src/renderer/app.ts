@@ -91,28 +91,43 @@ window.claude.onApprovalRequest((data) => {
   // 更新紧凑态为 pending 状态
   statusDot.className = 'status-dot pending';
 
+  // 使用 DOM API 构建审批卡片, 避免 innerHTML XSS 风险 (fix #16)
   const card = document.createElement('div');
   card.className = 'approval-card';
   card.id = `approval-${data.id}`;
-  card.innerHTML = `
-    <div class="label">⚠ 需要审批</div>
-    <div class="tool-desc">${escapeHtml(data.toolName)}: ${escapeHtml(data.description)}</div>
-    <div class="actions">
-      <button class="btn btn-deny" data-id="${escapeHtml(data.id)}">拒绝</button>
-      <button class="btn btn-allow" data-id="${escapeHtml(data.id)}">允许 ✓</button>
-    </div>
-  `;
 
-  // 绑定按钮事件
-  card.querySelector('.btn-deny')!.addEventListener('click', async () => {
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = '\u26A0 需要审批';
+  card.appendChild(label);
+
+  const toolDesc = document.createElement('div');
+  toolDesc.className = 'tool-desc';
+  toolDesc.textContent = `${data.toolName}: ${data.description}`;
+  card.appendChild(toolDesc);
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const denyBtn = document.createElement('button');
+  denyBtn.className = 'btn btn-deny';
+  denyBtn.textContent = '拒绝';
+  denyBtn.addEventListener('click', async () => {
     await window.claude.approveDecision(data.id, 'deny', 'Denied via Claude Island');
     card.remove();
-  });
+  }, { once: true }); // fix #8
 
-  card.querySelector('.btn-allow')!.addEventListener('click', async () => {
+  const allowBtn = document.createElement('button');
+  allowBtn.className = 'btn btn-allow';
+  allowBtn.textContent = '允许 \u2713';
+  allowBtn.addEventListener('click', async () => {
     await window.claude.approveDecision(data.id, 'allow');
     card.remove();
-  });
+  }, { once: true }); // fix #8
+
+  actions.appendChild(denyBtn);
+  actions.appendChild(allowBtn);
+  card.appendChild(actions);
 
   approvalsContainer.appendChild(card);
 });
@@ -141,9 +156,9 @@ function renderTasks(tasks: any[]): void {
     <div class="section-title">Tasks</div>
     ${tasks.map((t: any) => `
       <div class="task-row">
-        <span class="task-icon ${t.status}">${
-          t.status === 'completed' ? '✓' :
-          t.status === 'in_progress' ? '●' : '○'
+        <span class="task-icon ${escapeHtml(t.status)}">${
+          t.status === 'completed' ? '\u2713' :
+          t.status === 'in_progress' ? '\u25CF' : '\u25CB'
         }</span>
         <span>${escapeHtml(t.status === 'in_progress' ? t.activeForm : t.content)}</span>
       </div>

@@ -10,6 +10,8 @@ import type { HookEvent, HookResponse } from '../shared/types';
 
 export type RequestHandler = (event: HookEvent) => Promise<HookResponse>;
 
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB body 上限 (fix #9)
+
 export class HookServer {
   private server: http.Server | null = null;
   private handler: RequestHandler;
@@ -53,11 +55,23 @@ export class HookServer {
       // Hook 事件入口
       if (req.method === 'POST' && req.url === '/hook') {
         let body = '';
+        let bodySize = 0;
+        let aborted = false;
+
         req.on('data', (chunk: Buffer) => {
+          if (aborted) return;
+          bodySize += chunk.length;
+          if (bodySize > MAX_BODY_SIZE) {
+            aborted = true;
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Payload too large' }));
+            req.destroy();
+            return;
+          }
           body += chunk.toString();
         });
         req.on('end', () => {
-          this.handleHook(body, res);
+          if (!aborted) this.handleHook(body, res);
         });
         return;
       }
@@ -70,7 +84,6 @@ export class HookServer {
     return new Promise((resolve, reject) => {
       this.server!.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'EADDRINUSE') {
-          // 端口被占用, 尝试下一个
           console.log(`Port ${this._port} in use, trying ${this._port + 1}...`);
           this._port++;
           if (this._port <= port + 5) {
@@ -103,14 +116,17 @@ export class HookServer {
   private async handleHook(body: string, res: http.ServerResponse): Promise<void> {
     try {
       const event = JSON.parse(body) as HookEvent;
-      // handler 可能会阻塞 (审批等待), 这是设计如此
       const response = await this.handler(event);
+      // 先序列化再写 header, 防止 stringify 失败后 header 已发 (fix #11)
+      const responseBody = JSON.stringify(response);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(response));
+      res.end(responseBody);
     } catch (err) {
       console.error('[HookServer] Error handling hook:', err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid request' }));
+      if (!res.headersSent) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid request' }));
+      }
     }
   }
 }

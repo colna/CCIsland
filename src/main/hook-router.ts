@@ -9,6 +9,8 @@
  */
 
 import type { HookEvent, HookResponse, ApprovalRequestData } from '../shared/types';
+import { IPC_CHANNELS } from '../shared/types';
+import { describeToolInput } from '../shared/tool-description';
 import type { SessionState } from './session-state';
 import type { ApprovalManager } from './approval-manager';
 import type { WindowManager } from './window-manager';
@@ -38,13 +40,13 @@ export class HookRouter {
 
       case 'PreToolUse':
         this.sessionState.handlePreToolUse(event);
-        this.windowManager.sendToRenderer('state-update',
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
         return {};
 
       case 'PostToolUse':
         this.sessionState.handlePostToolUse(event);
-        this.windowManager.sendToRenderer('state-update',
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
         return {};
 
@@ -57,12 +59,12 @@ export class HookRouter {
           id: event.tool_use_id || `perm-${Date.now()}`,
           toolName: event.tool_name || 'Unknown',
           toolInput: event.tool_input || {},
-          description: this.describeToolInput(event),
+          description: describeToolInput(event.tool_name, event.tool_input || {}),
           timestamp: Date.now(),
           sessionId: event.session_id,
         };
 
-        this.windowManager.sendToRenderer('approval-request', approvalRequest);
+        this.windowManager.sendToRenderer(IPC_CHANNELS.APPROVAL_REQUEST, approvalRequest);
 
         // Promise 挂起, 等待用户点击 Allow/Deny
         const decision = await this.approvalManager.waitForDecision(approvalRequest);
@@ -72,20 +74,20 @@ export class HookRouter {
 
       case 'TaskCreated':
         this.sessionState.handleTaskCreated(event);
-        this.windowManager.sendToRenderer('state-update',
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
         return {};
 
       case 'TaskCompleted':
         this.sessionState.handleTaskCompleted(event);
-        this.windowManager.sendToRenderer('state-update',
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
         return {};
 
       case 'Notification':
         this.sessionState.handleNotification(event);
         this.windowManager.show('expanded');
-        this.windowManager.sendToRenderer('notification',
+        this.windowManager.sendToRenderer(IPC_CHANNELS.NOTIFICATION,
           { message: event.notification_message });
         // 3 秒后自动收起
         setTimeout(() => this.windowManager.show('compact'), 3000);
@@ -94,7 +96,7 @@ export class HookRouter {
       case 'SessionEnd':
       case 'Stop':
         this.sessionState.handleSessionEnd(event);
-        this.windowManager.sendToRenderer('state-update',
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
         setTimeout(() => this.windowManager.hide(), 3000);
         return {};
@@ -118,32 +120,5 @@ export class HookRouter {
         },
       },
     };
-  }
-
-  /** 从 tool_input 生成人类可读的工具描述 */
-  private describeToolInput(event: HookEvent): string {
-    const input = event.tool_input || {};
-    switch (event.tool_name) {
-      case 'Bash':
-        return (input.command as string || 'shell command').slice(0, 100);
-      case 'Read':
-        return input.file_path as string || 'file';
-      case 'Write':
-        return input.file_path as string || 'file';
-      case 'Edit':
-        return input.file_path as string || 'file';
-      case 'Glob':
-        return input.pattern as string || 'pattern';
-      case 'Grep':
-        return `"${input.pattern || ''}" in ${input.path || 'cwd'}`;
-      case 'WebFetch':
-        return (input.url as string || 'URL').slice(0, 80);
-      case 'WebSearch':
-        return input.query as string || 'search';
-      case 'Task':
-        return input.description as string || 'subagent task';
-      default:
-        return JSON.stringify(input).slice(0, 80);
-    }
   }
 }

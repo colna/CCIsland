@@ -16,9 +16,7 @@ import os from 'node:os';
 const SETTINGS_PATH = path.join(os.homedir(), '.claude', 'settings.json');
 
 const HOOK_EVENTS = {
-  // 需要等待审批的事件: 120s 超时
   blocking: ['PreToolUse', 'PermissionRequest'],
-  // 仅通知的事件: 5s 超时
   notifying: [
     'SessionStart', 'SessionEnd', 'PostToolUse',
     'Notification', 'TaskCreated', 'TaskCompleted',
@@ -26,18 +24,19 @@ const HOOK_EVENTS = {
   ],
 };
 
+// 缓存安装状态, 避免每 10s 读磁盘 (fix #3)
+let _installedCache: boolean | null = null;
+
 /** 安装 Claude Island hooks 到 ~/.claude/settings.json */
 export function installHooks(port: number = 51515): void {
-  // 读取已有配置
   let settings: Record<string, any> = {};
   try {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf-8');
     settings = JSON.parse(raw);
   } catch {
-    // 文件不存在或解析失败, 从空配置开始
+    // 文件不存在或解析失败
   }
 
-  // 构建 hooks 配置
   const hooks: Record<string, any[]> = {};
   const url = `http://localhost:${port}/hook`;
 
@@ -48,14 +47,11 @@ export function installHooks(port: number = 51515): void {
     hooks[event] = [{ hooks: [{ type: 'http', url, timeout: 5 }] }];
   }
 
-  // 合并 (保留其他字段如 permissions, api_key 等)
   settings.hooks = { ...(settings.hooks || {}), ...hooks };
 
-  // 确保目录存在
   fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true });
-
-  // 写回
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
+  _installedCache = true;
   console.log(`[HookInstaller] Hooks installed to ${SETTINGS_PATH}`);
 }
 
@@ -65,45 +61,52 @@ export function removeHooks(port: number = 51515): void {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf-8');
     const settings = JSON.parse(raw);
 
-    // 只移除匹配 localhost:PORT 的 hook
     if (settings.hooks) {
       const marker = `localhost:${port}`;
       for (const [event, matchers] of Object.entries(settings.hooks)) {
         if (Array.isArray(matchers)) {
-          settings.hooks[event] = matchers.filter((m: any) =>
-            !JSON.stringify(m).includes(marker)
-          );
-          // 移除空数组
+          // 精确匹配 hook URL 而非 JSON.stringify (fix #13)
+          settings.hooks[event] = matchers.filter((m: any) => {
+            const hooks = m.hooks || [];
+            return !hooks.some((h: any) => h.url?.includes(marker));
+          });
           if (settings.hooks[event].length === 0) {
             delete settings.hooks[event];
           }
         }
       }
-      // 如果 hooks 对象为空, 也移除
       if (Object.keys(settings.hooks).length === 0) {
         delete settings.hooks;
       }
     }
 
     fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
+    _installedCache = false;
     console.log('[HookInstaller] Hooks removed');
   } catch {
     // 文件不存在则忽略
   }
 }
 
-/** 检查当前是否已安装 hooks */
+/** 检查当前是否已安装 hooks (使用内存缓存) */
 export function isInstalled(port: number = 51515): boolean {
+  if (_installedCache !== null) return _installedCache;
   try {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf-8');
     const settings = JSON.parse(raw);
-    return JSON.stringify(settings.hooks || {}).includes(`localhost:${port}`);
+    _installedCache = JSON.stringify(settings.hooks || {}).includes(`localhost:${port}`);
+    return _installedCache;
   } catch {
     return false;
   }
 }
 
-// CLI 入口: node hook-installer.js install|remove
+/** 手动失效缓存 */
+export function invalidateCache(): void {
+  _installedCache = null;
+}
+
+// CLI 入口
 if (require.main === module) {
   const cmd = process.argv[2];
   if (cmd === 'install') {

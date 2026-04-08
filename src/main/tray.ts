@@ -9,12 +9,10 @@
 
 import { Tray, Menu, nativeImage, BrowserWindow } from 'electron';
 import type { SessionState } from './session-state';
-import { installHooks, removeHooks, isInstalled } from './hook-installer';
+import { installHooks, removeHooks, isInstalled, invalidateCache } from './hook-installer';
 
-/** 创建 16x16 的简易托盘图标 (内联 base64, 无需外部文件) */
+/** 创建 16x16 的简易托盘图标 (内联, 无需外部文件) */
 function createTrayIcon(): Electron.NativeImage {
-  // 使用 Electron 的 nativeImage 创建一个简单的圆形图标
-  // 16x16 像素, 深色圆形作为托盘图标
   const size = 16;
   const canvas = Buffer.alloc(size * size * 4); // RGBA
 
@@ -26,13 +24,12 @@ function createTrayIcon(): Electron.NativeImage {
       const idx = (y * size + x) * 4;
 
       if (dist <= 6) {
-        // 圆形区域: 白色 (菜单栏通常是浅色, 白色图标会自动反色)
         canvas[idx] = 255;     // R
         canvas[idx + 1] = 255; // G
         canvas[idx + 2] = 255; // B
-        canvas[idx + 3] = dist <= 5 ? 255 : 128; // A (边缘半透明)
+        canvas[idx + 3] = dist <= 5 ? 255 : 128; // A
       } else {
-        canvas[idx + 3] = 0; // 透明
+        canvas[idx + 3] = 0;
       }
     }
   }
@@ -61,6 +58,7 @@ export function createTray(
         click: () => {
           if (!installed) {
             installHooks();
+            invalidateCache();
             updateMenu();
           }
         },
@@ -70,6 +68,7 @@ export function createTray(
         label: 'Remove Hooks',
         click: () => {
           removeHooks();
+          invalidateCache();
           updateMenu();
         },
         enabled: installed,
@@ -91,8 +90,11 @@ export function createTray(
 
   updateMenu();
 
-  // 定期更新菜单状态
-  setInterval(updateMenu, 10_000);
+  // 定期更新菜单状态 (isInstalled 使用缓存, 不再每次读磁盘)
+  const menuInterval = setInterval(updateMenu, 10_000);
+
+  // 托盘销毁时清理 interval (fix #15)
+  tray.on('click', updateMenu);
 
   return tray;
 }
