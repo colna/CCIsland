@@ -7,19 +7,27 @@
  * 类型声明见 window.d.ts
  */
 
+console.log('[app] loaded, window.claude =', typeof window.claude);
+
+if (!window.claude) {
+  document.body.innerText = 'ERROR: window.claude undefined';
+  throw new Error('preload failed');
+}
+
 // ── DOM 引用 ──
 
-const compactView = document.getElementById('compact-view')!;
-const expandedView = document.getElementById('expanded-view')!;
-const statusDot = compactView.querySelector('.status-dot')!;
-const statusText = compactView.querySelector('.status-text')!;
-const approvalsContainer = document.getElementById('approvals')!;
-const tasksContainer = document.getElementById('tasks')!;
-const recentToolsContainer = document.getElementById('recent-tools')!;
+var compactView = document.getElementById('compact-view')!;
+var expandedView = document.getElementById('expanded-view')!;
+var statusDot = compactView.querySelector('.status-dot')!;
+var statusText = compactView.querySelector('.status-text')!;
+var approvalsContainer = document.getElementById('approvals')!;
+var tasksContainer = document.getElementById('tasks')!;
+var recentToolsContainer = document.getElementById('recent-tools')!;
 
 // ── 面板状态切换 ──
 
-window.claude.onPanelState((data) => {
+window.claude.onPanelState((data: any) => {
+  console.log('[app] panelState:', data.state);
   switch (data.state) {
     case 'compact':
       compactView.classList.remove('hidden');
@@ -38,28 +46,29 @@ window.claude.onPanelState((data) => {
 
 // ── 会话状态更新 ──
 
-window.claude.onStateUpdate((state) => {
+window.claude.onStateUpdate((state: any) => {
+  console.log('[app] stateUpdate:', JSON.stringify(state).slice(0, 200));
   // 更新紧凑态
   if (state.currentTool) {
     statusDot.className = 'status-dot active';
     statusText.textContent = `${state.currentTool.toolName}: ${state.currentTool.description}`;
   } else if (state.isActive) {
-    statusDot.className = 'status-dot idle';
+    statusDot.className = 'status-dot active';
     statusText.textContent = 'Claude Code';
   } else {
     statusDot.className = 'status-dot';
-    statusText.textContent = 'Claude Code (idle)';
+    statusText.textContent = 'Claude Code';
   }
 
   // 更新展开态 - 头部
-  const cwdEl = expandedView.querySelector('.cwd');
+  var cwdEl = expandedView.querySelector('.cwd');
   if (cwdEl && state.cwd) {
     cwdEl.textContent = shortenPath(state.cwd);
   }
 
-  const elapsedEl = expandedView.querySelector('.elapsed');
+  var elapsedEl = expandedView.querySelector('.elapsed');
   if (elapsedEl && state.startTime) {
-    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    var elapsed = Math.floor((Date.now() - state.startTime) / 1000);
     elapsedEl.textContent = formatDuration(elapsed);
   }
 
@@ -72,43 +81,42 @@ window.claude.onStateUpdate((state) => {
 
 // ── 审批请求 ──
 
-window.claude.onApprovalRequest((data) => {
-  // 更新紧凑态为 pending 状态
+window.claude.onApprovalRequest((data: any) => {
+  console.log('[app] approvalRequest:', data);
   statusDot.className = 'status-dot pending';
 
-  // 使用 DOM API 构建审批卡片, 避免 innerHTML XSS 风险 (fix #16)
-  const card = document.createElement('div');
+  var card = document.createElement('div');
   card.className = 'approval-card';
-  card.id = `approval-${data.id}`;
+  card.id = 'approval-' + data.id;
 
-  const label = document.createElement('div');
+  var label = document.createElement('div');
   label.className = 'label';
   label.textContent = '\u26A0 需要审批';
   card.appendChild(label);
 
-  const toolDesc = document.createElement('div');
+  var toolDesc = document.createElement('div');
   toolDesc.className = 'tool-desc';
-  toolDesc.textContent = `${data.toolName}: ${data.description}`;
+  toolDesc.textContent = data.toolName + ': ' + data.description;
   card.appendChild(toolDesc);
 
-  const actions = document.createElement('div');
+  var actions = document.createElement('div');
   actions.className = 'actions';
 
-  const denyBtn = document.createElement('button');
+  var denyBtn = document.createElement('button');
   denyBtn.className = 'btn btn-deny';
   denyBtn.textContent = '拒绝';
-  denyBtn.addEventListener('click', async () => {
-    await window.claude.approveDecision(data.id, 'deny', 'Denied via Claude Island');
+  denyBtn.addEventListener('click', function() {
+    window.claude.approveDecision(data.id, 'deny', 'Denied via Claude Island');
     card.remove();
-  }, { once: true }); // fix #8
+  }, { once: true });
 
-  const allowBtn = document.createElement('button');
+  var allowBtn = document.createElement('button');
   allowBtn.className = 'btn btn-allow';
-  allowBtn.textContent = '允许 \u2713';
-  allowBtn.addEventListener('click', async () => {
-    await window.claude.approveDecision(data.id, 'allow');
+  allowBtn.textContent = '允许 ✓';
+  allowBtn.addEventListener('click', function() {
+    window.claude.approveDecision(data.id, 'allow');
     card.remove();
-  }, { once: true }); // fix #8
+  }, { once: true });
 
   actions.appendChild(denyBtn);
   actions.appendChild(allowBtn);
@@ -119,76 +127,67 @@ window.claude.onApprovalRequest((data) => {
 
 // ── 通知 ──
 
-window.claude.onNotification((data) => {
-  const toast = document.createElement('div');
+window.claude.onNotification((data: any) => {
+  var toast = document.createElement('div');
   toast.className = 'notification-toast';
   toast.textContent = data.message || 'Notification';
   approvalsContainer.prepend(toast);
-
-  // 5 秒后移除
-  setTimeout(() => toast.remove(), 5000);
+  setTimeout(function() { toast.remove(); }, 5000);
 });
 
 // ── 渲染函数 ──
 
-function renderTasks(tasks: any[]): void {
+function renderTasks(tasks: any[]) {
   if (tasks.length === 0) {
     tasksContainer.innerHTML = '';
     return;
   }
-
-  tasksContainer.innerHTML = `
-    <div class="section-title">Tasks</div>
-    ${tasks.map((t: any) => `
-      <div class="task-row">
-        <span class="task-icon ${escapeHtml(t.status)}">${
-          t.status === 'completed' ? '\u2713' :
-          t.status === 'in_progress' ? '\u25CF' : '\u25CB'
-        }</span>
-        <span>${escapeHtml(t.status === 'in_progress' ? t.activeForm : t.content)}</span>
-      </div>
-    `).join('')}
-  `;
+  tasksContainer.innerHTML =
+    '<div class="section-title">Tasks</div>' +
+    tasks.map(function(t: any) {
+      var icon = t.status === 'completed' ? '✓' : t.status === 'in_progress' ? '●' : '○';
+      var cls = t.status;
+      var text = t.status === 'in_progress' ? t.activeForm : t.content;
+      return '<div class="task-row"><span class="task-icon ' + escapeHtml(cls) + '">' + icon +
+        '</span><span>' + escapeHtml(text) + '</span></div>';
+    }).join('');
 }
 
-function renderRecentTools(tools: any[]): void {
+function renderRecentTools(tools: any[]) {
   if (tools.length === 0) {
     recentToolsContainer.innerHTML = '';
     return;
   }
-
-  recentToolsContainer.innerHTML = `
-    <div class="section-title">Recent</div>
-    ${tools.slice(-5).map((t: any) => `
-      <div class="tool-row">
-        <span class="name">${escapeHtml(t.toolName)}</span>
-        <span class="desc">${escapeHtml(t.description)}</span>
-        <span class="duration">${t.duration ? t.duration.toFixed(1) + 's' : '...'}</span>
-      </div>
-    `).join('')}
-  `;
+  recentToolsContainer.innerHTML =
+    '<div class="section-title">Recent</div>' +
+    tools.slice(-5).map(function(t: any) {
+      return '<div class="tool-row"><span class="name">' + escapeHtml(t.toolName) +
+        '</span><span class="desc">' + escapeHtml(t.description) +
+        '</span><span class="duration">' + (t.duration ? t.duration.toFixed(1) + 's' : '...') +
+        '</span></div>';
+    }).join('');
 }
 
 // ── 工具函数 ──
 
-function shortenPath(p: string): string {
-  const home = '/Users/';
+function shortenPath(p: string) {
+  var home = '/Users/';
   if (p.startsWith(home)) {
-    const rest = p.slice(home.length);
-    const parts = rest.split('/');
+    var rest = p.slice(home.length);
+    var parts = rest.split('/');
     return '~/' + parts.slice(1).join('/');
   }
   return p;
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}m${s > 0 ? ` ${s}s` : ''}`;
+function formatDuration(seconds: number) {
+  if (seconds < 60) return seconds + 's';
+  var m = Math.floor(seconds / 60);
+  var s = seconds % 60;
+  return m + 'm' + (s > 0 ? ' ' + s + 's' : '');
 }
 
-function escapeHtml(s: string): string {
+function escapeHtml(s: string) {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -196,8 +195,10 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-// ── 初始化: 获取当前状态 ──
-window.claude.getState().then((state) => {
+// ── 初始化 ──
+console.log('[app] registering listeners done');
+window.claude.getState().then(function(state: any) {
+  console.log('[app] initial state:', state);
   if (state && state.isActive) {
     statusDot.className = 'status-dot active';
   }

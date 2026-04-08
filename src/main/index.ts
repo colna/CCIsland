@@ -100,6 +100,14 @@ function createIslandWindow(): BrowserWindow {
   // screen-saver level: 覆盖菜单栏/刘海区域
   win.setAlwaysOnTop(true, 'screen-saver');
 
+  // 开发模式: 打开 DevTools 查看 renderer console
+  win.webContents.openDevTools({ mode: 'detach' });
+
+  // 打印 renderer 日志到主进程终端
+  win.webContents.on('console-message', (_e, _level, message) => {
+    console.log('[Renderer]', message);
+  });
+
   return win;
 }
 

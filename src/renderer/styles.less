@@ -12,9 +12,9 @@
 @color-red: #ff3b30;
 @color-blue: #0a84ff;
 
-@bg-compact: rgba(0, 0, 0, 0.88);
-@bg-compact-hover: rgba(0, 0, 0, 0.95);
-@bg-expanded: rgba(0, 0, 0, 0.92);
+@bg-compact: #000000;           // 纯黑 — 与刘海融为一体
+@bg-compact-hover: #111111;
+@bg-expanded: rgba(0, 0, 0, 0.95);
 @bg-white-10: rgba(255, 255, 255, 0.1);
 @bg-white-15: rgba(255, 255, 255, 0.15);
 
@@ -55,20 +55,22 @@ body {
 .compact {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 0 16px;
   height: @compact-height;
   background: @bg-compact;
-  border-radius: @compact-height / 2;
+  // 只有底部圆角 — 顶部与刘海齐平
+  border-radius: 0 0 16px 16px;
   cursor: pointer;
   transition: all 0.3s @ease-spring;
   margin: 0 auto;
   width: fit-content;
-  min-width: 180px;
+  min-width: 200px;
+  max-width: 320px;
 
   &:hover {
     background: @bg-compact-hover;
-    transform: scale(1.02);
   }
 }
 
@@ -101,12 +103,13 @@ body {
 
 .expanded {
   background: @bg-expanded;
-  border-radius: 20px;
+  border-radius: 0 0 20px 20px;   // 只有底部圆角
   padding: 16px;
   width: @expanded-width;
   max-height: @expanded-max-height;
   overflow-y: auto;
   border: 0.5px solid @bg-white-10;
+  border-top: none;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   margin: 0 auto;
   animation: expandIn 0.3s @ease-spring;
