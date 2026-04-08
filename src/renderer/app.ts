@@ -160,21 +160,21 @@ function renderLog(state: any) {
   var html = '';
   var tools = state.recentTools || [];
 
-  // 已完成的工具: ✅ ToolName `description`
+  // 已完成的工具
   for (var i = 0; i < tools.length; i++) {
     var t = tools[i];
     var desc = t.description ? ' <code>' + escapeHtml(t.description) + '</code>' : '';
     html += '<div class="log-line done">' +
-      '<span class="log-check">\u2705</span>' +
+      '<span class="dot dot-done"></span>' +
       '<b>' + escapeHtml(t.toolName) + '</b>' + desc +
       '</div>';
   }
 
-  // 当前正在执行的工具: ⏳ ToolName `description`
+  // 当前正在执行的工具
   if (state.currentTool) {
     var cdesc = state.currentTool.description ? ' <code>' + escapeHtml(state.currentTool.description) + '</code>' : '';
     html += '<div class="log-line running">' +
-      '<span class="log-check">\u23F3</span>' +
+      '<span class="dot dot-running"></span>' +
       '<b>' + escapeHtml(state.currentTool.toolName) + '</b>' + cdesc +
       '</div>';
   }
@@ -182,7 +182,7 @@ function renderLog(state: any) {
   // Thinking
   if (state.phase === 'thinking') {
     html += '<div class="log-line thinking">' +
-      '<span class="log-check">\uD83D\uDCAD</span>' +
+      '<span class="dot dot-thinking"></span>' +
       '<b>Thinking...</b>' +
       '</div>';
   }
@@ -190,7 +190,7 @@ function renderLog(state: any) {
   // 完成
   if (state.phase === 'done') {
     html += '<div class="log-line complete">' +
-      '<span class="log-check">\uD83D\uDFE2</span>' +
+      '<span class="dot dot-complete"></span>' +
       '<b>Complete</b>' +
       '</div>';
   }

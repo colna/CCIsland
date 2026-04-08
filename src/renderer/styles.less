@@ -338,6 +338,9 @@ body {
   &::-webkit-scrollbar-thumb { background: @bg-white-15; border-radius: 2px; }
 
   .log-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 3px 0;
     font-size: 12px;
     color: @text-tool;
@@ -345,11 +348,6 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-
-    .log-check {
-      margin-right: 4px;
-      font-size: 11px;
-    }
 
     b {
       color: @color-white;
@@ -367,5 +365,17 @@ body {
     &.running b { color: @color-blue; }
     &.thinking b { color: #6e5ce6; }
     &.complete b { color: @color-green; }
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.dot-done { background: @color-green; }
+    &.dot-running { background: @color-blue; animation: pulse 1.2s infinite; }
+    &.dot-thinking { background: #6e5ce6; animation: glow 1.2s ease-in-out infinite; }
+    &.dot-complete { background: @color-green; }
   }
 }
