@@ -27,7 +27,13 @@ fi
 echo "Latest version: $TAG"
 
 # Find the ZIP download URL for our architecture
-ZIP_URL=$(echo "$RELEASE_INFO" | grep '"browser_download_url"' | grep "${ARCH_SUFFIX}" | grep '\.zip"' | head -1 | sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/')
+# electron-builder naming: arm64 → "*-arm64-mac.zip", x64 → "*-mac.zip" (no arch suffix)
+if [ "$ARCH_SUFFIX" = "arm64" ]; then
+  ZIP_URL=$(echo "$RELEASE_INFO" | grep '"browser_download_url"' | grep 'arm64-mac\.zip"' | head -1 | sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/')
+else
+  # x64: match "*-mac.zip" but exclude "*-arm64-mac.zip"
+  ZIP_URL=$(echo "$RELEASE_INFO" | grep '"browser_download_url"' | grep '\-mac\.zip"' | grep -v 'arm64' | head -1 | sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/')
+fi
 
 if [ -z "$ZIP_URL" ]; then
   echo "Error: No ZIP found for $ARCH_SUFFIX in release $TAG"
