@@ -39,6 +39,8 @@ export class HookRouter {
       case 'SessionStart':
         this.sessionState.handleSessionStart(event);
         this.windowManager.show('compact');
+        this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
+          this.sessionState.getSnapshot());
         this.trayManager.updateStatus('thinking');
         return {};
 
@@ -114,16 +116,13 @@ export class HookRouter {
           this.sessionState.getSnapshot());
         this.trayManager.updateStatus('done',
           this.sessionState.lastMessage || 'Done');
-        // done 状态显示 15s 后隐藏, 让用户看清结果
-        setTimeout(() => this.windowManager.hide(), 15000);
         return {};
 
       case 'SessionEnd':
         this.sessionState.handleSessionEnd(event);
         this.windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE,
           this.sessionState.getSnapshot());
-        this.trayManager.updateStatus('idle');
-        setTimeout(() => this.windowManager.hide(), 3000);
+        this.trayManager.updateStatus('done');
         return {};
 
       default:
