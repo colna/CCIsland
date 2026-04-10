@@ -11,7 +11,7 @@
 import { Tray, Menu, nativeImage, BrowserWindow } from 'electron';
 import type { SessionManager } from './session-state';
 import type { SessionPhase } from '../shared/types';
-import { installHooks, removeHooks, isInstalled, invalidateCache } from './hook-installer';
+import { installHooks, removeHooks, isInstalled } from './hook-installer';
 import type { WindowManager } from './window-manager';
 
 // 颜色映射
@@ -112,7 +112,6 @@ export class TrayManager {
         click: () => {
           if (!installed) {
             installHooks();
-            invalidateCache();
             this.updateMenu();
           }
         },
@@ -122,7 +121,6 @@ export class TrayManager {
         label: 'Remove Hooks',
         click: () => {
           removeHooks();
-          invalidateCache();
           this.updateMenu();
         },
         enabled: installed,

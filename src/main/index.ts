@@ -57,6 +57,14 @@ app.whenReady().then(async () => {
   // 定期清理结束的会话 (每分钟)
   setInterval(() => sessionManager.cleanup(), 60_000);
 
+  // 定期检查 hooks 是否被外部覆盖 (每 30 秒)
+  setInterval(() => {
+    if (!isInstalled(server.port)) {
+      console.log('[Claude Island] Hooks missing — re-installing');
+      installHooks(server.port);
+    }
+  }, 30_000);
+
   console.log(`[Claude Island] Running on port ${server.port}`);
 });
 
