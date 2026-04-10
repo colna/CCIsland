@@ -19,6 +19,11 @@ const CH = {
   APPROVAL_REQUEST: 'approval-request',
   PANEL_STATE: 'panel-state',
   NOTIFICATION: 'notification',
+  QUESTION_REQUEST: 'question-request',
+  QUESTION_ANSWER: 'question-answer',
+  SESSION_LIST: 'session-list',
+  JUMP_TO_TERMINAL: 'jump-to-terminal',
+  GET_CHAT_HISTORY: 'get-chat-history',
 };
 
 contextBridge.exposeInMainWorld('claude', {
@@ -26,6 +31,13 @@ contextBridge.exposeInMainWorld('claude', {
 
   approveDecision: (toolUseId: string, behavior: 'allow' | 'deny' | 'allowAlways', reason?: string, toolName?: string) =>
     ipcRenderer.invoke(CH.APPROVAL_DECISION, { toolUseId, behavior, reason, toolName }),
+
+  answerQuestion: (id: string, answers: Record<string, string | string[]>, originalQuestions: any[]) =>
+    ipcRenderer.invoke(CH.QUESTION_ANSWER, { id, answers, originalQuestions }),
+
+  jumpToTerminal: () => ipcRenderer.invoke(CH.JUMP_TO_TERMINAL),
+
+  getChatHistory: (sessionId?: string) => ipcRenderer.invoke(CH.GET_CHAT_HISTORY, sessionId),
 
   getState: () => ipcRenderer.invoke(CH.GET_STATE),
 
@@ -42,6 +54,16 @@ contextBridge.exposeInMainWorld('claude', {
   onApprovalRequest: (callback: (data: any) => void) => {
     ipcRenderer.removeAllListeners(CH.APPROVAL_REQUEST);
     ipcRenderer.on(CH.APPROVAL_REQUEST, (_event: any, data: any) => callback(data));
+  },
+
+  onQuestionRequest: (callback: (data: any) => void) => {
+    ipcRenderer.removeAllListeners(CH.QUESTION_REQUEST);
+    ipcRenderer.on(CH.QUESTION_REQUEST, (_event: any, data: any) => callback(data));
+  },
+
+  onSessionList: (callback: (data: any) => void) => {
+    ipcRenderer.removeAllListeners(CH.SESSION_LIST);
+    ipcRenderer.on(CH.SESSION_LIST, (_event: any, data: any) => callback(data));
   },
 
   onPanelState: (callback: (data: any) => void) => {

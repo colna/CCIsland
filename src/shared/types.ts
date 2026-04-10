@@ -41,6 +41,7 @@ export interface HookResponse {
       message?: string;
       interrupt?: boolean;
     };
+    updatedInput?: Record<string, any>;
   };
 }
 
@@ -48,6 +49,29 @@ export interface HookResponse {
 export interface ApprovalDecision {
   behavior: 'allow' | 'deny';
   reason?: string;
+  updatedInput?: Record<string, any>;
+}
+
+/** AskUserQuestion 选项 */
+export interface QuestionOption {
+  label: string;
+  description?: string;
+}
+
+/** AskUserQuestion 单个问题 */
+export interface QuestionItem {
+  question: string;
+  header?: string;
+  options: QuestionOption[];
+  multiSelect: boolean;
+}
+
+/** AskUserQuestion 请求 (Main → Renderer) */
+export interface QuestionRequestData {
+  id: string;
+  questions: QuestionItem[];
+  sessionId: string;
+  timestamp: number;
 }
 
 /** 审批请求 (Main → Renderer) */
@@ -88,6 +112,23 @@ export interface LogEntry {
 /** 会话阶段 */
 export type SessionPhase = 'idle' | 'thinking' | 'tool' | 'responding' | 'done';
 
+/** 会话列表项 (多会话用) */
+export interface SessionListItem {
+  sessionId: string;
+  cwd?: string;
+  phase: SessionPhase;
+  lastMessage?: string;
+  toolCount: number;
+  isActive: boolean;
+}
+
+/** 聊天消息 */
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+}
+
 /** 会话快照 (Main → Renderer) */
 export interface SessionSnapshot {
   isActive: boolean;
@@ -114,4 +155,9 @@ export const IPC_CHANNELS = {
   APPROVAL_REQUEST: 'approval-request',
   PANEL_STATE: 'panel-state',
   NOTIFICATION: 'notification',
+  QUESTION_REQUEST: 'question-request',
+  QUESTION_ANSWER: 'question-answer',
+  SESSION_LIST: 'session-list',
+  JUMP_TO_TERMINAL: 'jump-to-terminal',
+  GET_CHAT_HISTORY: 'get-chat-history',
 } as const;

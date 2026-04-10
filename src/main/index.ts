@@ -14,7 +14,7 @@ import path from 'node:path';
 import { HookServer } from './hook-server';
 import { HookRouter } from './hook-router';
 import { WindowManager } from './window-manager';
-import { SessionState } from './session-state';
+import { SessionManager } from './session-state';
 import { ApprovalManager } from './approval-manager';
 import { setupIPC } from './ipc-handlers';
 import { TrayManager } from './tray';
@@ -23,7 +23,7 @@ import { installHooks, isInstalled } from './hook-installer';
 let mainWindow: BrowserWindow;
 let server: HookServer;
 
-const sessionState = new SessionState();
+const sessionManager = new SessionManager();
 const approvalManager = new ApprovalManager();
 const windowManager = new WindowManager();
 
@@ -36,13 +36,13 @@ app.whenReady().then(async () => {
   windowManager.setWindow(mainWindow);
 
   // 系统托盘
-  const trayManager = new TrayManager(mainWindow, sessionState, windowManager);
+  const trayManager = new TrayManager(mainWindow, sessionManager, windowManager);
 
   // IPC 通信
-  setupIPC(ipcMain, approvalManager, sessionState, windowManager);
+  setupIPC(ipcMain, approvalManager, sessionManager, windowManager);
 
   // 事件路由器
-  const router = new HookRouter(sessionState, approvalManager, windowManager, trayManager);
+  const router = new HookRouter(sessionManager, approvalManager, windowManager, trayManager);
 
   // 启动 HTTP Hook 服务
   server = new HookServer((event, signal) => router.handle(event, signal));
@@ -53,6 +53,9 @@ app.whenReady().then(async () => {
     installHooks(server.port);
     console.log('[Claude Island] Hooks auto-installed');
   }
+
+  // 定期清理结束的会话 (每分钟)
+  setInterval(() => sessionManager.cleanup(), 60_000);
 
   console.log(`[Claude Island] Running on port ${server.port}`);
 });

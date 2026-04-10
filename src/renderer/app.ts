@@ -2,7 +2,7 @@
  * Renderer 逻辑 — 灵动岛 UI
  *
  * 通过 window.claude (preload 暴露) 与 Main Process 通信
- * 处理: 面板状态切换, 会话状态更新, 审批请求, 通知
+ * 处理: 面板状态切换, 会话状态更新, 审批请求, AskUserQuestion, 通知
  *
  * 类型声明见 window.d.ts
  */
@@ -22,7 +22,9 @@ var statusDot = compactView.querySelector('.status-dot')!;
 var statusText = compactView.querySelector('.status-text')!;
 var closeBtn = compactView.querySelector('.close-btn')!;
 var approvalsContainer = document.getElementById('approvals')!;
+var sessionListContainer = document.getElementById('session-list')!;
 var logList = document.getElementById('log-list')!;
+var terminalBtn = document.getElementById('terminal-btn');
 var latestState: any = null; // 缓存最新状态用于渲染日志
 
 // ── 点击事件: 展开/收回/关闭 ──
@@ -39,10 +41,27 @@ compactView.addEventListener('click', function(e: MouseEvent) {
 });
 
 expandedView.addEventListener('click', function(e: MouseEvent) {
-  // 点击按钮时不收回 (审批按钮)
-  if ((e.target as HTMLElement).closest('.btn')) return;
+  // 点击按钮、输入框、选项时不收回
+  var target = e.target as HTMLElement;
+  if (target.closest('.btn') || target.closest('.option-chip') ||
+      target.closest('.other-input') || target.closest('.question-card') ||
+      target.closest('.session-row') || target.closest('.terminal-btn')) return;
   window.claude.togglePanel('compact');
 });
+
+// ── 终端跳转按钮 ──
+
+if (terminalBtn) {
+  terminalBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    window.claude.jumpToTerminal().then(function(result: any) {
+      if (!result.success) {
+        statusText.textContent = 'No terminal found';
+        setTimeout(function() { statusText.textContent = 'Claude Code'; }, 2000);
+      }
+    });
+  });
+}
 
 // ── 面板状态切换 ──
 
@@ -117,6 +136,39 @@ window.claude.onStateUpdate((state: any) => {
   }
 });
 
+// ── 多会话列表 ──
+
+window.claude.onSessionList((sessions: any[]) => {
+  if (!sessionListContainer) return;
+  if (!sessions || sessions.length <= 1) {
+    sessionListContainer.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < sessions.length; i++) {
+    var s = sessions[i];
+    var dotClass = 'dot ';
+    switch (s.phase) {
+      case 'tool': dotClass += 'dot-running'; break;
+      case 'thinking': dotClass += 'dot-thinking'; break;
+      case 'done': dotClass += 'dot-done'; break;
+      default: dotClass += 'dot-idle'; break;
+    }
+    var cwd = s.cwd || 'unknown';
+    // 缩短路径
+    var parts = cwd.split('/');
+    if (parts.length > 3) cwd = '.../' + parts.slice(-2).join('/');
+    var activeClass = (latestState && s.sessionId === latestState.sessionId) ? ' active' : '';
+    html += '<div class="session-row' + activeClass + '">' +
+      '<span class="' + dotClass + '"></span>' +
+      '<span class="session-cwd">' + escapeHtml(cwd) + '</span>' +
+      '<span class="session-tools">' + s.toolCount + '</span>' +
+      '</div>';
+  }
+  sessionListContainer.innerHTML = html;
+});
+
 // ── 审批请求 ──
 
 window.claude.onApprovalRequest((data: any) => {
@@ -169,6 +221,134 @@ window.claude.onApprovalRequest((data: any) => {
   actions.appendChild(allowAlwaysBtn);
   card.appendChild(actions);
 
+  approvalsContainer.appendChild(card);
+});
+
+// ── AskUserQuestion 请求 ──
+
+window.claude.onQuestionRequest((data: any) => {
+  console.log('[app] questionRequest:', data);
+  statusDot.className = 'status-dot pending';
+
+  var card = document.createElement('div');
+  card.className = 'question-card';
+  card.id = 'question-' + data.id;
+
+  // 跟踪每个问题的选择
+  var selections: Record<string, string | string[]> = {};
+
+  for (var qi = 0; qi < data.questions.length; qi++) {
+    var q = data.questions[qi];
+    var questionKey = q.question;
+
+    // Header
+    if (q.header) {
+      var header = document.createElement('div');
+      header.className = 'question-header';
+      header.textContent = q.header;
+      card.appendChild(header);
+    }
+
+    // 问题文本
+    var questionText = document.createElement('div');
+    questionText.className = 'question-text';
+    questionText.textContent = q.question;
+    card.appendChild(questionText);
+
+    // 选项 chips
+    var optionsContainer = document.createElement('div');
+    optionsContainer.className = 'options-container';
+
+    if (q.multiSelect) {
+      selections[questionKey] = [];
+    }
+
+    for (var oi = 0; oi < q.options.length; oi++) {
+      var opt = q.options[oi];
+      var chip = document.createElement('button');
+      chip.className = 'option-chip';
+      chip.textContent = opt.label;
+      if (opt.description) {
+        chip.title = opt.description;
+      }
+
+      // 闭包捕获变量
+      (function(chipEl: HTMLElement, qKey: string, label: string, isMulti: boolean, container: HTMLElement) {
+        chipEl.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (isMulti) {
+            chipEl.classList.toggle('selected');
+            var arr = selections[qKey] as string[];
+            var idx = arr.indexOf(label);
+            if (idx >= 0) { arr.splice(idx, 1); } else { arr.push(label); }
+          } else {
+            var siblings = container.querySelectorAll('.option-chip');
+            for (var s = 0; s < siblings.length; s++) {
+              siblings[s].classList.remove('selected');
+            }
+            chipEl.classList.add('selected');
+            selections[qKey] = label;
+          }
+          // 清空 Other 输入
+          var otherInput = card.querySelectorAll('.other-input')[qi] as HTMLInputElement;
+          if (otherInput && !isMulti) otherInput.value = '';
+        });
+      })(chip, questionKey, opt.label, q.multiSelect, optionsContainer);
+
+      optionsContainer.appendChild(chip);
+    }
+
+    card.appendChild(optionsContainer);
+
+    // "Other" 自由输入
+    var otherRow = document.createElement('div');
+    otherRow.className = 'other-row';
+    var otherInput = document.createElement('input');
+    otherInput.type = 'text';
+    otherInput.className = 'other-input';
+    otherInput.placeholder = 'Or type your answer...';
+
+    (function(inputEl: HTMLInputElement, qKey: string, isMulti: boolean, container: HTMLElement) {
+      inputEl.addEventListener('input', function() {
+        if (inputEl.value.trim() && !isMulti) {
+          var siblings = container.querySelectorAll('.option-chip');
+          for (var s = 0; s < siblings.length; s++) {
+            siblings[s].classList.remove('selected');
+          }
+          selections[qKey] = inputEl.value.trim();
+        }
+      });
+      inputEl.addEventListener('click', function(e) { e.stopPropagation(); });
+    })(otherInput, questionKey, q.multiSelect, optionsContainer);
+
+    otherRow.appendChild(otherInput);
+    card.appendChild(otherRow);
+  }
+
+  // Submit 按钮
+  var submitBtn = document.createElement('button');
+  submitBtn.className = 'btn btn-submit';
+  submitBtn.textContent = 'Submit';
+  submitBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    // 收集最终答案
+    var finalAnswers: Record<string, string | string[]> = {};
+    var otherInputs = card.querySelectorAll('.other-input') as NodeListOf<HTMLInputElement>;
+    for (var i = 0; i < data.questions.length; i++) {
+      var qKey = data.questions[i].question;
+      var otherVal = otherInputs[i] ? otherInputs[i].value.trim() : '';
+      if (otherVal && !data.questions[i].multiSelect) {
+        finalAnswers[qKey] = otherVal;
+      } else {
+        finalAnswers[qKey] = selections[qKey] || '';
+      }
+    }
+
+    window.claude.answerQuestion(data.id, finalAnswers, data.questions);
+    card.remove();
+  }, { once: true });
+
+  card.appendChild(submitBtn);
   approvalsContainer.appendChild(card);
 });
 

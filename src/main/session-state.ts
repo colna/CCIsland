@@ -1,24 +1,22 @@
 /**
  * SessionState — 会话状态管理
  *
- * 跟踪 Claude Code 会话的运行状态:
- * - phase: idle → thinking → tool → thinking → tool → responding → done
- * - 当前正在执行的工具
- * - 最近的工具历史 (最近 8 条)
- * - 任务列表进度
- * - 会话元信息 (ID, CWD, 开始时间)
+ * SessionInstance: 单个会话的状态
+ * SessionManager: 管理多个并发会话, 按优先级排序
  */
 
-import type { HookEvent, SessionSnapshot, ToolActivity, TaskItem, SessionPhase, LogEntry } from '../shared/types';
+import type { HookEvent, SessionSnapshot, ToolActivity, TaskItem, SessionPhase, LogEntry, SessionListItem } from '../shared/types';
 import { describeToolInput } from '../shared/tool-description';
 
-const MAX_RECENT_TOOLS = 200; // 保留会话全部日志
+const MAX_RECENT_TOOLS = 200;
 
-export class SessionState {
+/** 单个 Claude Code 会话实例 */
+export class SessionInstance {
   isActive = false;
   phase: SessionPhase = 'idle';
   sessionId?: string;
   cwd?: string;
+  transcriptPath?: string;
   startTime?: number;
   currentTool?: ToolActivity;
   recentTools: ToolActivity[] = [];
@@ -26,13 +24,14 @@ export class SessionState {
   tasks: TaskItem[] = [];
   lastEventTime?: number;
   lastMessage?: string;
-  toolCount = 0; // 本次会话工具调用计数
+  toolCount = 0;
 
   handleSessionStart(event: HookEvent): void {
     this.isActive = true;
     this.phase = 'thinking';
     this.sessionId = event.session_id;
     this.cwd = event.cwd;
+    if (event.transcript_path) this.transcriptPath = event.transcript_path;
     this.startTime = Date.now();
     this.currentTool = undefined;
     this.recentTools = [];
@@ -45,52 +44,36 @@ export class SessionState {
 
   handleUserPromptSubmit(event: HookEvent): void {
     this.lastEventTime = Date.now();
-
-    // 激活会话（或复用已有会话）
-    if (!this.isActive || this.sessionId !== event.session_id) {
+    if (!this.isActive) {
       this.isActive = true;
       this.sessionId = event.session_id;
       this.cwd = event.cwd;
       this.startTime = Date.now();
       this.lastMessage = undefined;
       this.toolCount = 0;
-      if (this.sessionId !== event.session_id) {
-        this.recentTools = [];
-        this.activityLog = [];
-        this.tasks = [];
-      }
     }
     if (event.cwd) this.cwd = event.cwd;
-
+    if (event.transcript_path) this.transcriptPath = event.transcript_path;
     this.phase = 'thinking';
   }
 
   handlePreToolUse(event: HookEvent): void {
     this.lastEventTime = Date.now();
-
-    // 自动激活会话 (Claude Code 不发 SessionStart 事件)
-    if (!this.isActive || this.sessionId !== event.session_id) {
+    if (!this.isActive) {
       this.isActive = true;
       this.sessionId = event.session_id;
       this.cwd = event.cwd;
       this.startTime = Date.now();
       this.lastMessage = undefined;
       this.toolCount = 0;
-      if (this.sessionId !== event.session_id) {
-        this.recentTools = [];
-        this.activityLog = [];
-        this.tasks = [];
-      }
     }
     if (event.cwd) this.cwd = event.cwd;
+    if (event.transcript_path) this.transcriptPath = event.transcript_path;
 
     this.phase = 'tool';
     this.toolCount++;
     const input = event.tool_input || {};
-
-    // PreToolUse: 只记录工具名
     this.activityLog.push({ toolName: event.tool_name || 'Unknown' });
-
     this.currentTool = {
       id: event.tool_use_id || `tool-${Date.now()}`,
       toolName: event.tool_name || 'Unknown',
@@ -103,27 +86,20 @@ export class SessionState {
   handlePostToolUse(event: HookEvent): void {
     this.lastEventTime = Date.now();
     if (event.cwd) this.cwd = event.cwd;
-
-    // 工具完成后进入 thinking (等待下一个工具或回复)
     this.phase = 'thinking';
 
     if (this.currentTool && this.currentTool.id === event.tool_use_id) {
       this.currentTool.endTime = Date.now();
       this.currentTool.duration = (this.currentTool.endTime - this.currentTool.startTime) / 1000;
       this.currentTool.status = 'completed';
-
-      // PostToolUse: 工具名 + 描述
       this.activityLog.push({
         toolName: this.currentTool.toolName,
         description: this.currentTool.description,
       });
-
-      // 移入历史
       this.recentTools.push({ ...this.currentTool });
       if (this.recentTools.length > MAX_RECENT_TOOLS) {
         this.recentTools.shift();
       }
-
       this.currentTool = undefined;
     }
   }
@@ -131,7 +107,7 @@ export class SessionState {
   handlePermissionRequest(event: HookEvent): void {
     this.lastEventTime = Date.now();
     if (event.cwd) this.cwd = event.cwd;
-    this.phase = 'tool'; // 等待审批也算工具阶段
+    this.phase = 'tool';
   }
 
   handleTaskCreated(event: HookEvent): void {
@@ -149,12 +125,10 @@ export class SessionState {
   handleStop(event: HookEvent): void {
     this.lastEventTime = Date.now();
     this.phase = 'done';
-
-    // 提取最后消息摘要 (第一行, 最多 80 字符)
     if (event.last_assistant_message) {
       const firstLine = event.last_assistant_message
-        .replace(/\*\*/g, '')  // 去除 markdown 粗体
-        .replace(/[#*`]/g, '') // 去除 markdown 标记
+        .replace(/\*\*/g, '')
+        .replace(/[#*`]/g, '')
         .split('\n')
         .filter((l: string) => l.trim().length > 0)[0] || '';
       this.lastMessage = firstLine.length > 80
@@ -170,7 +144,6 @@ export class SessionState {
     this.lastEventTime = Date.now();
   }
 
-  /** 生成快照 (发送给 Renderer) */
   getSnapshot(): SessionSnapshot {
     return {
       isActive: this.isActive,
@@ -186,7 +159,6 @@ export class SessionState {
     };
   }
 
-  /** 从事件更新任务列表 */
   private updateTasksFromEvent(event: HookEvent): void {
     this.lastEventTime = Date.now();
     const input = event.tool_input || {};
@@ -212,3 +184,101 @@ export class SessionState {
     return p;
   }
 }
+
+// ── 阶段优先级 ──
+
+const PHASE_PRIORITY: Record<string, number> = {
+  tool: 5,
+  thinking: 4,
+  responding: 3,
+  done: 2,
+  idle: 1,
+};
+
+/** 多会话管理器 */
+export class SessionManager {
+  private sessions = new Map<string, SessionInstance>();
+
+  /** 获取或创建会话 */
+  getOrCreate(sessionId: string): SessionInstance {
+    let session = this.sessions.get(sessionId);
+    if (!session) {
+      session = new SessionInstance();
+      session.sessionId = sessionId;
+      this.sessions.set(sessionId, session);
+    }
+    return session;
+  }
+
+  get(sessionId: string): SessionInstance | undefined {
+    return this.sessions.get(sessionId);
+  }
+
+  /** 获取最高优先级的会话 (用于紧凑态显示) */
+  getFocusedSession(): SessionInstance | undefined {
+    if (this.sessions.size === 0) return undefined;
+
+    let best: SessionInstance | undefined;
+    let bestScore = -1;
+    let bestTime = 0;
+
+    for (const session of this.sessions.values()) {
+      if (!session.isActive && session.phase !== 'done') continue;
+      const score = PHASE_PRIORITY[session.phase] || 0;
+      const time = session.lastEventTime || 0;
+      if (score > bestScore || (score === bestScore && time > bestTime)) {
+        best = session;
+        bestScore = score;
+        bestTime = time;
+      }
+    }
+
+    return best || this.sessions.values().next().value;
+  }
+
+  /** 获取焦点会话快照 */
+  getFocusedSnapshot(): SessionSnapshot {
+    const session = this.getFocusedSession();
+    if (!session) {
+      return { isActive: false, phase: 'idle', recentTools: [], activityLog: [], tasks: [] };
+    }
+    return session.getSnapshot();
+  }
+
+  /** 获取所有会话列表项 */
+  getAllSnapshots(): SessionListItem[] {
+    const items: SessionListItem[] = [];
+    for (const [id, session] of this.sessions) {
+      if (!session.isActive && session.phase === 'idle') continue; // 跳过未激活的空会话
+      items.push({
+        sessionId: id,
+        cwd: session.cwd,
+        phase: session.phase,
+        lastMessage: session.lastMessage,
+        toolCount: session.toolCount,
+        isActive: session.isActive,
+      });
+    }
+    return items.sort((a, b) => {
+      return (PHASE_PRIORITY[b.phase] || 0) - (PHASE_PRIORITY[a.phase] || 0);
+    });
+  }
+
+  /** 焦点会话的 lastMessage */
+  get lastMessage(): string | undefined {
+    return this.getFocusedSession()?.lastMessage;
+  }
+
+  /** 清理超过 5 分钟的已结束会话 */
+  cleanup(): void {
+    const cutoff = Date.now() - 5 * 60 * 1000;
+    for (const [id, session] of this.sessions) {
+      if (!session.isActive && session.phase === 'done' && (session.lastEventTime || 0) < cutoff) {
+        this.sessions.delete(id);
+      }
+    }
+  }
+}
+
+// 保留旧导出名以兼容
+export { SessionInstance as SessionState };

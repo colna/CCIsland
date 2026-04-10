@@ -3,8 +3,11 @@
  *
  * 处理 Renderer → Main 的请求:
  * - approval-decision: 用户点击了 Allow/Deny
+ * - question-answer: 用户回答了 AskUserQuestion
  * - get-state: 获取当前会话快照
  * - toggle-panel: 切换展开/收起
+ * - jump-to-terminal: 跳转到终端
+ * - get-chat-history: 获取聊天历史
  */
 
 import type { IpcMain } from 'electron';
@@ -13,8 +16,10 @@ import path from 'node:path';
 import os from 'node:os';
 import { IPC_CHANNELS } from '../shared/types';
 import type { ApprovalManager } from './approval-manager';
-import type { SessionState } from './session-state';
+import type { SessionManager } from './session-state';
 import type { WindowManager } from './window-manager';
+import { jumpToTerminal } from './terminal-jumper';
+import { parseTranscript } from './chat-parser';
 
 const SETTINGS_PATH = path.join(os.homedir(), '.claude', 'settings.json');
 
@@ -39,7 +44,7 @@ function addToAllowedTools(toolName: string): void {
 export function setupIPC(
   ipcMain: IpcMain,
   approvalManager: ApprovalManager,
-  sessionState: SessionState,
+  sessionManager: SessionManager,
   windowManager: WindowManager
 ): void {
   // Renderer → Main: 用户点击了审批按钮
@@ -67,9 +72,32 @@ export function setupIPC(
     return { resolved };
   });
 
+  // Renderer → Main: 用户回答了 AskUserQuestion
+  ipcMain.handle(IPC_CHANNELS.QUESTION_ANSWER, (_event, data: {
+    id: string;
+    answers: Record<string, string | string[]>;
+    originalQuestions: any[];
+  }) => {
+    const updatedInput: Record<string, any> = {
+      questions: data.originalQuestions,
+      answers: data.answers,
+    };
+
+    const resolved = approvalManager.resolve(data.id, {
+      behavior: 'allow',
+      updatedInput,
+    });
+
+    if (!approvalManager.hasPending()) {
+      setTimeout(() => windowManager.show('compact'), 500);
+    }
+
+    return { resolved };
+  });
+
   // Renderer → Main: 请求当前状态快照
   ipcMain.handle(IPC_CHANNELS.GET_STATE, () => {
-    return sessionState.getSnapshot();
+    return sessionManager.getFocusedSnapshot();
   });
 
   // Renderer → Main: 用户点击展开/收起/隐藏
@@ -79,5 +107,19 @@ export function setupIPC(
     } else {
       windowManager.show(state);
     }
+  });
+
+  // Renderer → Main: 跳转到终端
+  ipcMain.handle(IPC_CHANNELS.JUMP_TO_TERMINAL, () => {
+    return jumpToTerminal();
+  });
+
+  // Renderer → Main: 获取聊天历史
+  ipcMain.handle(IPC_CHANNELS.GET_CHAT_HISTORY, (_event, sessionId?: string) => {
+    const session = sessionId
+      ? sessionManager.get(sessionId)
+      : sessionManager.getFocusedSession();
+    if (!session?.transcriptPath) return [];
+    return parseTranscript(session.transcriptPath, 30);
   });
 }

@@ -9,7 +9,7 @@
  */
 
 import { Tray, Menu, nativeImage, BrowserWindow } from 'electron';
-import type { SessionState } from './session-state';
+import type { SessionManager } from './session-state';
 import type { SessionPhase } from '../shared/types';
 import { installHooks, removeHooks, isInstalled, invalidateCache } from './hook-installer';
 import type { WindowManager } from './window-manager';
@@ -61,13 +61,13 @@ function getIcon(phase: string): Electron.NativeImage {
 
 export class TrayManager {
   private tray: Tray;
-  private sessionState: SessionState;
+  private sessionManager: SessionManager;
   private windowManager: WindowManager;
   private statusText = 'Idle';
   private menuInterval: NodeJS.Timeout;
 
-  constructor(mainWindow: BrowserWindow, sessionState: SessionState, windowManager: WindowManager) {
-    this.sessionState = sessionState;
+  constructor(mainWindow: BrowserWindow, sessionManager: SessionManager, windowManager: WindowManager) {
+    this.sessionManager = sessionManager;
     this.windowManager = windowManager;
     this.tray = new Tray(getIcon('idle'));
     this.tray.setToolTip('Claude Island — Idle');
