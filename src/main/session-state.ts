@@ -147,6 +147,20 @@ export class SessionInstance {
     this.lastEventTime = Date.now();
   }
 
+  /** 检查会话是否超时 (长时间无新事件) */
+  checkStale(timeoutMs: number): boolean {
+    if (!this.isActive) return false;
+    if (this.phase !== 'thinking' && this.phase !== 'tool') return false;
+    if (!this.lastEventTime) return false;
+
+    if (Date.now() - this.lastEventTime >= timeoutMs) {
+      this.phase = 'done';
+      this.lastMessage = 'Session timed out';
+      return true;
+    }
+    return false;
+  }
+
   getSnapshot(): SessionSnapshot {
     return {
       isActive: this.isActive,
@@ -270,6 +284,15 @@ export class SessionManager {
   /** 焦点会话的 lastMessage */
   get lastMessage(): string | undefined {
     return this.getFocusedSession()?.lastMessage;
+  }
+
+  /** 检查所有活跃会话是否超时, 返回是否有变更 */
+  checkStale(timeoutMs = 90_000): boolean {
+    let changed = false;
+    for (const session of this.sessions.values()) {
+      if (session.checkStale(timeoutMs)) changed = true;
+    }
+    return changed;
   }
 
   /** 清理超过 5 分钟的已结束会话 */

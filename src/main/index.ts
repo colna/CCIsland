@@ -19,6 +19,7 @@ import { ApprovalManager } from './approval-manager';
 import { setupIPC } from './ipc-handlers';
 import { TrayManager } from './tray';
 import { installHooks, isInstalled } from './hook-installer';
+import { IPC_CHANNELS } from '../shared/types';
 
 let mainWindow: BrowserWindow;
 let server: HookServer;
@@ -56,6 +57,16 @@ app.whenReady().then(async () => {
 
   // 定期清理结束的会话 (每分钟)
   setInterval(() => sessionManager.cleanup(), 60_000);
+
+  // 定期检查会话是否超时卡住 (每 15 秒, 90 秒无事件 → done)
+  setInterval(() => {
+    if (sessionManager.checkStale()) {
+      console.log('[Claude Island] Stale session detected — marking done');
+      windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE, sessionManager.getFocusedSnapshot());
+      windowManager.sendToRenderer(IPC_CHANNELS.SESSION_LIST, sessionManager.getAllSnapshots());
+      trayManager.updateStatus('done', 'Session timed out');
+    }
+  }, 15_000);
 
   // 定期检查 hooks 是否被外部覆盖 (每 30 秒)
   setInterval(() => {
