@@ -1,5 +1,31 @@
 # Claude Island 变更记录
 
+## [0.3.1] - 2026-04-10
+
+### feat: 会话超时自动恢复
+- Claude Code 遇到 API 错误（如 nginx 400）时可能不发送 Stop/SessionEnd 事件，灵动岛卡在 "Thinking..."
+- 新增 90 秒超时检测（每 15 秒运行），超时后自动将 thinking/tool 状态转为 done
+- 显示 "Session timed out" 消息，紫色呼吸灯变绿色完成态
+- `SessionInstance.checkStale()` + `SessionManager.checkStale()` 方法
+
+### fix: 审批卡片幽灵残留
+- Claude Code 自动允许权限（连接中断/AbortSignal）时，审批卡片不再残留在面板中
+- 新增 `APPROVAL_DISMISSED` IPC 通道，后端 abort 时通知 Renderer 移除对应卡片
+
+### fix: 展开面板滚动区域
+- 固定 header 和会话列表在顶部，仅日志区域可滚动
+- 解决展开态内容溢出时整个面板跟着滚动的问题
+
+### fix: 多会话列表样式与交互
+- 修复会话列表容器样式（间距、圆点颜色、hover 效果）
+- 修复点击会话行切换焦点会话的交互
+
+### fix: Hooks 被外部覆盖后自动恢复
+- `hook-installer.ts` 改用合并策略写入 settings.json，保留其他工具的 hooks
+- 定期检查（每 30 秒）发现 hooks 缺失时自动重新安装
+
+---
+
 ## [0.3.0] - 2026-04-10
 
 ### feat: AskUserQuestion 交互支持
