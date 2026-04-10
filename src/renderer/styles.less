@@ -177,19 +177,13 @@ body {
   padding: 16px;
   width: @expanded-width;
   max-height: 340px;
-  overflow-y: auto;
+  overflow: hidden;                // 容器不滚动，只有 log-list 滚动
+  display: flex;
+  flex-direction: column;
   border: none;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   margin: 0 auto;
   animation: expandIn 0.3s @ease-spring;
-
-  // 滚动条
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb {
-    background: @bg-white-15;
-    border-radius: 2px;
-  }
 }
 
 @keyframes expandIn {
@@ -377,11 +371,193 @@ body {
   }
 }
 
+// ── AskUserQuestion 卡片 ──
+
+@question-bg: rgba(110, 92, 230, 0.1);
+@question-border: rgba(110, 92, 230, 0.3);
+@purple: #6e5ce6;
+
+.question-card {
+  background: @question-bg;
+  border: 1px solid @question-border;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  animation: slideIn 0.2s ease-out;
+
+  .question-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: @purple;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .question-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: @text-primary;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+
+  .options-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .option-chip {
+    padding: 5px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    background: @bg-white-10;
+    color: @text-primary;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+      background: @bg-white-15;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    &.selected {
+      background: rgba(110, 92, 230, 0.3);
+      border-color: @purple;
+      color: @color-white;
+    }
+  }
+
+  .other-row {
+    margin-bottom: 10px;
+  }
+
+  .other-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: @text-primary;
+    font-size: 12px;
+    font-family: @font-system;
+    outline: none;
+
+    &::placeholder { color: @text-muted; }
+    &:focus {
+      border-color: @purple;
+      background: rgba(110, 92, 230, 0.08);
+    }
+  }
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 8px 20px;
+  background: rgba(110, 92, 230, 0.3);
+  color: @purple;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(110, 92, 230, 0.5);
+    color: @color-white;
+  }
+}
+
+// ── 面板头部 ──
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: @text-secondary;
+  }
+}
+
+.terminal-btn {
+  background: @bg-white-10;
+  border: none;
+  border-radius: 6px;
+  color: @text-secondary;
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: @bg-white-15;
+    color: @color-white;
+  }
+}
+
+// ── 多会话列表 ──
+
+.session-list {
+  margin-bottom: 8px;
+  flex-shrink: 0;
+
+  &.has-sessions {
+    background: @bg-white-10;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 10px;
+  }
+
+  .session-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+    &.active {
+      background: @bg-white-15;
+      .session-cwd { color: @text-primary; }
+    }
+
+    .session-cwd {
+      flex: 1;
+      color: @text-secondary;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .session-tools {
+      color: @text-muted;
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+    }
+
+    .dot-idle { background: #666; }
+  }
+}
+
 // ── 日志列表 ──
 
 .log-list {
   margin-top: 8px;
-  max-height: 280px;
+  flex: 1;
+  min-height: 0;                   // flex child 需要这个才能正确滚动
   overflow-y: auto;
 
   // 滚动条

@@ -24,10 +24,7 @@ const HOOK_EVENTS = {
   ],
 };
 
-// 缓存安装状态, 避免每 10s 读磁盘 (fix #3)
-let _installedCache: boolean | null = null;
-
-/** 安装 Claude Island hooks 到 ~/.claude/settings.json */
+/** 安装 Claude Island hooks 到 ~/.claude/settings.json (合并, 不覆盖已有 hooks) */
 export function installHooks(port: number = 51515): void {
   let settings: Record<string, any> = {};
   try {
@@ -37,22 +34,33 @@ export function installHooks(port: number = 51515): void {
     // 文件不存在或解析失败
   }
 
-  const hooks: Record<string, any[]> = {};
   const url = `http://localhost:${port}/hook`;
+  const marker = `localhost:${port}`;
+  const existingHooks: Record<string, any[]> = settings.hooks || {};
 
+  // 为每个事件合并 hook: 保留其他来源的 hooks, 追加/替换 cc-island 的
   for (const event of HOOK_EVENTS.blocking) {
-    hooks[event] = [{ hooks: [{ type: 'http', url, timeout: 120 }] }];
+    existingHooks[event] = mergeHookEntry(existingHooks[event], url, marker, 120);
   }
   for (const event of HOOK_EVENTS.notifying) {
-    hooks[event] = [{ hooks: [{ type: 'http', url, timeout: 5 }] }];
+    existingHooks[event] = mergeHookEntry(existingHooks[event], url, marker, 5);
   }
 
-  settings.hooks = { ...(settings.hooks || {}), ...hooks };
+  settings.hooks = existingHooks;
 
   fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true });
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
-  _installedCache = true;
   console.log(`[HookInstaller] Hooks installed to ${SETTINGS_PATH}`);
+}
+
+/** 合并单个事件的 hook 条目: 保留非 cc-island 的, 追加 cc-island 的 */
+function mergeHookEntry(existing: any[] | undefined, url: string, marker: string, timeout: number): any[] {
+  const others = (existing || []).filter((m: any) => {
+    const hooks = m.hooks || [];
+    return !hooks.some((h: any) => h.url?.includes(marker));
+  });
+  others.push({ hooks: [{ type: 'http', url, timeout }] });
+  return others;
 }
 
 /** 移除 Claude Island hooks, 保留其他配置 */
@@ -65,7 +73,6 @@ export function removeHooks(port: number = 51515): void {
       const marker = `localhost:${port}`;
       for (const [event, matchers] of Object.entries(settings.hooks)) {
         if (Array.isArray(matchers)) {
-          // 精确匹配 hook URL 而非 JSON.stringify (fix #13)
           settings.hooks[event] = matchers.filter((m: any) => {
             const hooks = m.hooks || [];
             return !hooks.some((h: any) => h.url?.includes(marker));
@@ -81,29 +88,21 @@ export function removeHooks(port: number = 51515): void {
     }
 
     fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
-    _installedCache = false;
     console.log('[HookInstaller] Hooks removed');
   } catch {
     // 文件不存在则忽略
   }
 }
 
-/** 检查当前是否已安装 hooks (使用内存缓存) */
+/** 检查当前是否已安装 hooks (每次读文件, 不缓存) */
 export function isInstalled(port: number = 51515): boolean {
-  if (_installedCache !== null) return _installedCache;
   try {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf-8');
     const settings = JSON.parse(raw);
-    _installedCache = JSON.stringify(settings.hooks || {}).includes(`localhost:${port}`);
-    return _installedCache;
+    return JSON.stringify(settings.hooks || {}).includes(`localhost:${port}`);
   } catch {
     return false;
   }
-}
-
-/** 手动失效缓存 */
-export function invalidateCache(): void {
-  _installedCache = null;
 }
 
 // CLI 入口
