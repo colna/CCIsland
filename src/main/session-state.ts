@@ -47,13 +47,16 @@ export class SessionInstance {
     if (!this.isActive) {
       this.isActive = true;
       this.sessionId = event.session_id;
-      this.cwd = event.cwd;
       this.startTime = Date.now();
-      this.lastMessage = undefined;
-      this.toolCount = 0;
     }
     if (event.cwd) this.cwd = event.cwd;
     if (event.transcript_path) this.transcriptPath = event.transcript_path;
+    // 每轮新对话清除上一轮的工具状态
+    this.currentTool = undefined;
+    this.recentTools = [];
+    this.activityLog = [];
+    this.lastMessage = undefined;
+    this.toolCount = 0;
     this.phase = 'thinking';
   }
 
