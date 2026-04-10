@@ -374,6 +374,15 @@ window.claude.onQuestionRequest((data: any) => {
   approvalsContainer.appendChild(card);
 });
 
+// ── 审批/问题卡片被后端自动消解 (abort) ──
+
+window.claude.onApprovalDismissed((data: any) => {
+  console.log('[app] approvalDismissed:', data);
+  var card = document.getElementById('approval-' + data.id) ||
+             document.getElementById('question-' + data.id);
+  if (card) card.remove();
+});
+
 // ── 通知 (简化: 在紧凑态 statusText 显示) ──
 
 window.claude.onNotification((data: any) => {

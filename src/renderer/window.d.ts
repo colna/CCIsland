@@ -17,5 +17,6 @@ interface Window {
     onSessionList: (cb: (data: any) => void) => void;
     onPanelState: (cb: (data: any) => void) => void;
     onNotification: (cb: (data: any) => void) => void;
+    onApprovalDismissed: (cb: (data: any) => void) => void;
   };
 }

@@ -104,6 +104,11 @@ export class HookRouter {
 
           this.windowManager.sendToRenderer(IPC_CHANNELS.QUESTION_REQUEST, questionRequest);
 
+          // 如果已经 aborted（Claude Code 已自动允许），跳过 UI
+          if (signal.aborted) {
+            return this.buildPermissionResponse({ behavior: 'allow', reason: '' });
+          }
+
           const aborted = new Promise<ApprovalDecision>((resolve) => {
             signal.addEventListener('abort', () => {
               this.approvalManager.resolve(permId, { behavior: 'allow', reason: '' });
@@ -115,6 +120,12 @@ export class HookRouter {
             this.approvalManager.waitForDecision(approvalRequest),
             aborted,
           ]);
+
+          // 通知 Renderer 移除卡片（abort 时用户没有手动关闭）
+          this.windowManager.sendToRenderer(IPC_CHANNELS.APPROVAL_DISMISSED, { id: permId });
+          if (!this.approvalManager.hasPending()) {
+            setTimeout(() => this.windowManager.show('compact'), 300);
+          }
 
           return this.buildPermissionResponse(decision);
         }
@@ -128,6 +139,11 @@ export class HookRouter {
           timestamp: Date.now(),
           sessionId: event.session_id,
         };
+
+        // 如果已经 aborted（Claude Code 已自动允许），跳过 UI
+        if (signal.aborted) {
+          return this.buildPermissionResponse({ behavior: 'allow', reason: '' });
+        }
 
         this.windowManager.sendToRenderer(IPC_CHANNELS.APPROVAL_REQUEST, approvalRequest);
 
@@ -143,6 +159,12 @@ export class HookRouter {
           this.approvalManager.waitForDecision(approvalRequest),
           aborted,
         ]);
+
+        // 通知 Renderer 移除卡片（abort 时用户没有手动关闭）
+        this.windowManager.sendToRenderer(IPC_CHANNELS.APPROVAL_DISMISSED, { id: approvalRequest.id });
+        if (!this.approvalManager.hasPending()) {
+          setTimeout(() => this.windowManager.show('compact'), 300);
+        }
 
         return this.buildPermissionResponse(decision);
       }

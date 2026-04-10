@@ -25,6 +25,7 @@ const CH = {
   JUMP_TO_TERMINAL: 'jump-to-terminal',
   GET_CHAT_HISTORY: 'get-chat-history',
   SWITCH_SESSION: 'switch-session',
+  APPROVAL_DISMISSED: 'approval-dismissed',
 };
 
 contextBridge.exposeInMainWorld('claude', {
@@ -77,5 +78,10 @@ contextBridge.exposeInMainWorld('claude', {
   onNotification: (callback: (data: any) => void) => {
     ipcRenderer.removeAllListeners(CH.NOTIFICATION);
     ipcRenderer.on(CH.NOTIFICATION, (_event: any, data: any) => callback(data));
+  },
+
+  onApprovalDismissed: (callback: (data: any) => void) => {
+    ipcRenderer.removeAllListeners(CH.APPROVAL_DISMISSED);
+    ipcRenderer.on(CH.APPROVAL_DISMISSED, (_event: any, data: any) => callback(data));
   },
 });
