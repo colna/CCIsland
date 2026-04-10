@@ -24,6 +24,7 @@ const CH = {
   SESSION_LIST: 'session-list',
   JUMP_TO_TERMINAL: 'jump-to-terminal',
   GET_CHAT_HISTORY: 'get-chat-history',
+  SWITCH_SESSION: 'switch-session',
 };
 
 contextBridge.exposeInMainWorld('claude', {
@@ -38,6 +39,8 @@ contextBridge.exposeInMainWorld('claude', {
   jumpToTerminal: () => ipcRenderer.invoke(CH.JUMP_TO_TERMINAL),
 
   getChatHistory: (sessionId?: string) => ipcRenderer.invoke(CH.GET_CHAT_HISTORY, sessionId),
+
+  switchSession: (sessionId: string) => ipcRenderer.invoke(CH.SWITCH_SESSION, sessionId),
 
   getState: () => ipcRenderer.invoke(CH.GET_STATE),
 

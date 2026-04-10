@@ -160,4 +160,5 @@ export const IPC_CHANNELS = {
   SESSION_LIST: 'session-list',
   JUMP_TO_TERMINAL: 'jump-to-terminal',
   GET_CHAT_HISTORY: 'get-chat-history',
+  SWITCH_SESSION: 'switch-session',
 } as const;

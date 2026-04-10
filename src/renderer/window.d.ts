@@ -8,6 +8,7 @@ interface Window {
       => Promise<any>;
     jumpToTerminal: () => Promise<{ success: boolean; app?: string }>;
     getChatHistory: (sessionId?: string) => Promise<any[]>;
+    switchSession: (sessionId: string) => Promise<any>;
     getState: () => Promise<any>;
     togglePanel: (state: 'compact' | 'expanded' | 'hidden') => Promise<void>;
     onStateUpdate: (cb: (data: any) => void) => void;

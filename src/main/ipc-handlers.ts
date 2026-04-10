@@ -122,4 +122,15 @@ export function setupIPC(
     if (!session?.transcriptPath) return [];
     return parseTranscript(session.transcriptPath, 30);
   });
+
+  // Renderer → Main: 切换焦点会话
+  ipcMain.handle(IPC_CHANNELS.SWITCH_SESSION, (_event, sessionId: string) => {
+    const session = sessionManager.get(sessionId);
+    if (!session) return null;
+    // 发送该会话的快照给 Renderer
+    const snapshot = session.getSnapshot();
+    windowManager.sendToRenderer(IPC_CHANNELS.STATE_UPDATE, snapshot);
+    windowManager.sendToRenderer(IPC_CHANNELS.SESSION_LIST, sessionManager.getAllSnapshots());
+    return snapshot;
+  });
 }

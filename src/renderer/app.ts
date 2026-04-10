@@ -142,12 +142,20 @@ window.claude.onSessionList((sessions: any[]) => {
   if (!sessionListContainer) return;
   if (!sessions || sessions.length <= 1) {
     sessionListContainer.innerHTML = '';
+    sessionListContainer.className = 'session-list';
     return;
   }
 
-  var html = '';
+  sessionListContainer.className = 'session-list has-sessions';
+  sessionListContainer.innerHTML = '';
+
   for (var i = 0; i < sessions.length; i++) {
     var s = sessions[i];
+    var row = document.createElement('div');
+    var activeClass = (latestState && s.sessionId === latestState.sessionId) ? ' active' : '';
+    row.className = 'session-row' + activeClass;
+
+    var dot = document.createElement('span');
     var dotClass = 'dot ';
     switch (s.phase) {
       case 'tool': dotClass += 'dot-running'; break;
@@ -155,18 +163,32 @@ window.claude.onSessionList((sessions: any[]) => {
       case 'done': dotClass += 'dot-done'; break;
       default: dotClass += 'dot-idle'; break;
     }
+    dot.className = dotClass;
+    row.appendChild(dot);
+
+    var cwdSpan = document.createElement('span');
+    cwdSpan.className = 'session-cwd';
     var cwd = s.cwd || 'unknown';
-    // 缩短路径
     var parts = cwd.split('/');
     if (parts.length > 3) cwd = '.../' + parts.slice(-2).join('/');
-    var activeClass = (latestState && s.sessionId === latestState.sessionId) ? ' active' : '';
-    html += '<div class="session-row' + activeClass + '">' +
-      '<span class="' + dotClass + '"></span>' +
-      '<span class="session-cwd">' + escapeHtml(cwd) + '</span>' +
-      '<span class="session-tools">' + s.toolCount + '</span>' +
-      '</div>';
+    cwdSpan.textContent = cwd;
+    row.appendChild(cwdSpan);
+
+    var toolsSpan = document.createElement('span');
+    toolsSpan.className = 'session-tools';
+    toolsSpan.textContent = String(s.toolCount);
+    row.appendChild(toolsSpan);
+
+    // 点击切换会话
+    (function(sessionId: string) {
+      row.addEventListener('click', function(e) {
+        e.stopPropagation();
+        window.claude.switchSession(sessionId);
+      });
+    })(s.sessionId);
+
+    sessionListContainer.appendChild(row);
   }
-  sessionListContainer.innerHTML = html;
 });
 
 // ── 审批请求 ──

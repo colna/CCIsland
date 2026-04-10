@@ -515,18 +515,28 @@ body {
 .session-list {
   margin-bottom: 8px;
 
+  &.has-sessions {
+    background: @bg-white-10;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 10px;
+  }
+
   .session-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
     cursor: pointer;
     transition: background 0.15s;
 
-    &:hover { background: @bg-white-10; }
-    &.active { background: @bg-white-15; }
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+    &.active {
+      background: @bg-white-15;
+      .session-cwd { color: @text-primary; }
+    }
 
     .session-cwd {
       flex: 1;
@@ -539,6 +549,7 @@ body {
     .session-tools {
       color: @text-muted;
       font-variant-numeric: tabular-nums;
+      font-size: 11px;
     }
 
     .dot-idle { background: #666; }
