@@ -1,5 +1,48 @@
 # Claude Island 变更记录
 
+## [0.3.0] - 2026-04-10
+
+### feat: AskUserQuestion 交互支持
+- 检测 `PermissionRequest` 中 `tool_name === 'AskUserQuestion'`，显示紫色问题卡片
+- 每个问题显示 header 标签 + 问题文本 + 可点选的选项 chips
+- 支持单选（互斥）和多选（toggle）模式
+- 每个问题底部有 "Or type your answer..." 自由输入框
+- Submit 按钮提交答案，通过 `updatedInput` 回传给 Claude Code
+- 复用现有 ApprovalManager 的 Promise 阻塞机制，无需新增通信方式
+- `HookResponse` 新增 `updatedInput` 字段，`ApprovalDecision` 新增 `updatedInput` 可选字段
+- 新增 IPC 通道: `QUESTION_REQUEST`、`QUESTION_ANSWER`
+- 新增类型: `QuestionOption`、`QuestionItem`、`QuestionRequestData`
+
+### feat: 多会话支持
+- `SessionState` 重命名为 `SessionInstance`（单会话实例）
+- 新增 `SessionManager` 类，使用 `Map<sessionId, SessionInstance>` 管理多个并发会话
+- 优先级排序算法决定焦点会话：tool(5) > thinking(4) > responding(3) > done(2) > idle(1)
+- 同优先级按 `lastEventTime` 排序，最新事件的会话优先显示
+- 展开面板顶部显示会话列表（cwd + phase 圆点 + 工具计数），单会话时自动隐藏
+- 每分钟清理超过 5 分钟的已结束会话
+- `HookRouter` 所有事件路由到对应 sessionId 的 `SessionInstance`
+- 每次事件同时发送焦点快照 (`STATE_UPDATE`) 和会话列表 (`SESSION_LIST`) 给 Renderer
+
+### feat: 终端跳转
+- 展开面板头部新增 ⌘T 按钮，点击激活运行 Claude Code 的终端窗口
+- 使用 AppleScript 检测并激活终端，支持 7 种终端/IDE：
+  iTerm2、Terminal.app、VS Code、Cursor、Windsurf、Ghostty、Warp
+- 按优先级依次检测 bundleId 是否运行，激活第一个匹配的终端
+- 新增 `src/main/terminal-jumper.ts` 模块
+
+### feat: 聊天历史 (MVP)
+- 新增 `src/main/chat-parser.ts`，解析 Claude Code 的 JSONL transcript 文件
+- 从 hook 事件的 `transcript_path` 获取对话文件路径
+- 提取 user/assistant 消息，返回最近 30 条
+- 新增 IPC 通道 `GET_CHAT_HISTORY`，按需获取指定会话的聊天历史
+- `SessionInstance` 新增 `transcriptPath` 字段
+
+### feat: 展开面板头部
+- 展开态新增 panel-header，包含 "Claude Code" 标题和终端跳转按钮
+- 展开态点击选项 chips、输入框、按钮时不会触发面板收起
+
+---
+
 ## [0.2.0] - 2026-04-09
 
 ### feat: UserPromptSubmit 事件支持
