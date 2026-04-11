@@ -1,39 +1,48 @@
-// Claude Island — 灵动岛样式 (深色主题)
-// Less 变量 + 嵌套
+// Claude Island — Apple-Inspired Design System (Dark Theme)
+// Based on Apple DESIGN.md: SF Pro, Apple Blue, glass nav, tight tracking
 
-// ── 设计令牌 ──
+// ── Design Tokens (Apple) ──
 
-@font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+@font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+@font-text: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
 @font-mono: 'SF Mono', 'Menlo', monospace;
 
-@color-white: #fff;
+// Apple Colors
+@apple-blue: #0071e3;
+@apple-blue-bright: #2997ff;       // Links on dark bg
+@apple-link: #0066cc;
+@color-white: #ffffff;
+@near-black: #1d1d1f;
 @color-green: #34c759;
 @color-orange: #ff9f0a;
 @color-red: #ff3b30;
-@color-blue: #0a84ff;
 
-@bg-compact: #000000;           // 纯黑 — 与刘海融为一体
-@bg-compact-hover: #111111;
-@bg-expanded: rgba(0, 0, 0, 0.95);
-@bg-white-10: rgba(255, 255, 255, 0.1);
+// Backgrounds (Apple Dark)
+@bg-compact: #000000;
+@bg-compact-hover: rgba(255, 255, 255, 0.06);
+@bg-expanded: rgba(0, 0, 0, 0.85);
+@bg-surface-dark-1: #1c1c1e;
+@bg-surface-dark-2: #2c2c2e;
+@bg-surface-dark-3: #3a3a3c;
+@bg-white-06: rgba(255, 255, 255, 0.06);
+@bg-white-10: rgba(255, 255, 255, 0.10);
 @bg-white-15: rgba(255, 255, 255, 0.15);
 
+// Text (Apple on dark)
 @text-primary: @color-white;
-@text-secondary: rgba(255, 255, 255, 0.5);
-@text-tertiary: rgba(255, 255, 255, 0.4);
-@text-muted: rgba(255, 255, 255, 0.3);
-@text-tool: rgba(255, 255, 255, 0.6);
-@text-tool-name: rgba(255, 255, 255, 0.8);
-@text-tool-desc: rgba(255, 255, 255, 0.9);
+@text-secondary: rgba(255, 255, 255, 0.55);
+@text-tertiary: rgba(255, 255, 255, 0.35);
+@text-muted: rgba(255, 255, 255, 0.25);
 
-@compact-width: 220px;
+// Layout
 @compact-height: 36px;
 @expanded-width: 380px;
-@expanded-max-height: 400px;
 
+// Apple ease curve
+@ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1.0);
 @ease-spring: cubic-bezier(0.4, 0, 0.2, 1);
 
-// ── 基础重置 ──
+// ── Base Reset ──
 
 * {
   margin: 0;
@@ -43,26 +52,28 @@
 
 body {
   background: transparent;
-  font-family: @font-system;
+  font-family: @font-text;
   color: @text-primary;
   overflow: hidden;
   -webkit-app-region: no-drag;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-// ── 紧凑态 (药丸, 220x36) ──
+// ── Compact (Pill, 药丸) ──
 
 .compact {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 12px 0 16px;
+  padding: 0 14px 0 16px;
   height: @compact-height;
   background: @bg-compact;
-  border-radius: 18px;
+  border-radius: 980px;               // Apple pill radius
   cursor: pointer;
-  transition: all 0.3s @ease-spring;
+  transition: all 0.3s @ease-apple;
   margin: 0 auto;
   width: fit-content;
   min-width: 200px;
@@ -77,12 +88,12 @@ body {
 .close-btn {
   font-size: 14px;
   line-height: 1;
-  color: @text-secondary;
+  color: @text-tertiary;
   opacity: 0;
   cursor: pointer;
   padding: 2px 4px;
-  border-radius: 4px;
-  transition: opacity 0.2s, color 0.2s;
+  border-radius: 50%;
+  transition: opacity 0.2s @ease-apple, color 0.2s @ease-apple;
   flex-shrink: 0;
 
   &:hover {
@@ -91,29 +102,37 @@ body {
   }
 }
 
+// ── Status Dot ──
+
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #666;
+  background: @bg-surface-dark-3;
   flex-shrink: 0;
+  transition: background 0.3s @ease-apple;
 
   &.active {
-    background: @color-green;
-    box-shadow: 0 0 6px 2px rgba(52, 199, 89, 0.5);
-    animation: dot-pulse 1.5s ease-in-out infinite;
+    background: @apple-blue-bright;
+    box-shadow: 0 0 6px 2px rgba(41, 151, 255, 0.45);
+    animation: dot-pulse 1.8s ease-in-out infinite;
   }
   &.thinking {
-    background: #6e5ce6;
-    box-shadow: 0 0 6px 2px rgba(110, 92, 230, 0.6);
-    animation: glow 1.2s ease-in-out infinite;
+    background: @apple-blue;
+    box-shadow: 0 0 6px 2px rgba(0, 113, 227, 0.5);
+    animation: glow 1.4s ease-in-out infinite;
   }
-  &.pending { background: @color-orange; animation: pulse 1.5s infinite; }
+  &.pending {
+    background: @color-orange;
+    animation: pulse 1.5s infinite;
+  }
   &.done {
     background: @color-green;
     animation: done-pop 0.4s ease-out;
   }
-  &.idle { background: #666; }
+  &.idle {
+    background: @bg-surface-dark-3;
+  }
 }
 
 @keyframes pulse {
@@ -122,18 +141,25 @@ body {
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(110, 92, 230, 0.4); }
-  50% { box-shadow: 0 0 10px 4px rgba(110, 92, 230, 0.8); }
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(0, 113, 227, 0.35); }
+  50% { box-shadow: 0 0 10px 4px rgba(0, 113, 227, 0.7); }
 }
 
 @keyframes dot-pulse {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(52, 199, 89, 0.3); transform: scale(1); }
-  50% { box-shadow: 0 0 8px 3px rgba(52, 199, 89, 0.6); transform: scale(1.2); }
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(41, 151, 255, 0.25); transform: scale(1); }
+  50% { box-shadow: 0 0 8px 3px rgba(41, 151, 255, 0.55); transform: scale(1.15); }
+}
+
+@keyframes done-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); box-shadow: 0 0 8px 3px rgba(52, 199, 89, 0.5); }
+  100% { transform: scale(1); }
 }
 
 .status-text {
   font-size: 12px;
   font-weight: 500;
+  letter-spacing: -0.12px;            // Apple negative tracking
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -144,18 +170,12 @@ body {
   }
 
   &.shimmer {
-    background: linear-gradient(90deg, #fff 25%, #6e5ce6 50%, #fff 75%);
+    background: linear-gradient(90deg, #fff 25%, @apple-blue-bright 50%, #fff 75%);
     background-size: 200% 100%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: shimmer 2s infinite linear;
+    animation: shimmer 2.5s infinite linear;
   }
-}
-
-@keyframes done-pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.6); box-shadow: 0 0 8px 3px rgba(52, 199, 89, 0.6); }
-  100% { transform: scale(1); }
 }
 
 @keyframes done-fade {
@@ -169,39 +189,45 @@ body {
   100% { background-position: -200% 0; }
 }
 
-// ── 展开态 (面板, 380xAuto) ──
+// ── Expanded Panel (Glass) ──
 
 .expanded {
   background: @bg-expanded;
-  border-radius: 20px;             // 四角全圆
+  backdrop-filter: saturate(180%) blur(20px);   // Apple glass nav effect
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: 16px;
   padding: 16px;
   width: @expanded-width;
-  max-height: 340px;
-  overflow: hidden;                // 容器不滚动，只有 log-list 滚动
+  max-height: 360px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: none;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 3px 30px rgba(0, 0, 0, 0.35);   // Apple soft shadow
   margin: 0 auto;
-  animation: expandIn 0.3s @ease-spring;
+  animation: expandIn 0.35s @ease-apple;
 }
 
 @keyframes expandIn {
-  from { opacity: 0; transform: scaleY(0.8) translateY(-10px); }
-  to { opacity: 1; transform: scaleY(1) translateY(0); }
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .hidden { display: none !important; }
 
-// ── 头部 ──
+// ── Header ──
 
 .header {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
+  letter-spacing: -0.12px;
 
-  .title { font-weight: 600; }
+  .title {
+    font-family: @font-display;
+    font-weight: 600;
+  }
 
   .cwd {
     color: @text-secondary;
@@ -226,7 +252,8 @@ body {
   font-size: 16px;
   cursor: pointer;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 50%;
+  transition: all 0.2s @ease-apple;
 
   &:hover {
     background: @bg-white-10;
@@ -236,14 +263,14 @@ body {
 
 .divider {
   height: 1px;
-  background: @bg-white-10;
+  background: rgba(255, 255, 255, 0.08);
   margin: 10px 0;
 }
 
-// ── 审批卡片 ──
+// ── Approval Card ──
 
-@approval-bg: rgba(255, 159, 10, 0.1);
-@approval-border: rgba(255, 159, 10, 0.3);
+@approval-bg: rgba(255, 159, 10, 0.08);
+@approval-border: rgba(255, 159, 10, 0.2);
 
 .approval-card {
   background: @approval-bg;
@@ -251,23 +278,25 @@ body {
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 10px;
-  animation: slideIn 0.2s ease-out;
+  animation: slideIn 0.25s @ease-apple;
 
   .label {
     display: flex;
     align-items: center;
     gap: 6px;
     font-size: 12px;
+    font-family: @font-display;
     font-weight: 600;
     color: @color-orange;
     margin-bottom: 8px;
+    letter-spacing: -0.12px;
   }
 
   .tool-desc {
     font-size: 11px;
     font-family: @font-mono;
-    color: @text-tool-desc;
-    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
     margin-bottom: 10px;
     word-break: break-all;
   }
@@ -280,45 +309,48 @@ body {
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-// ── 按钮 ──
+// ── Buttons (Apple Style) ──
 
 .btn {
-  padding: 6px 20px;
+  padding: 7px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: 980px;                // Apple pill button
   font-size: 12px;
-  font-weight: 600;
+  font-family: @font-text;
+  font-weight: 500;
+  letter-spacing: -0.12px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s @ease-apple;
 }
 
 .btn-deny {
-  background: rgba(255, 59, 48, 0.2);
+  background: rgba(255, 59, 48, 0.15);
   color: @color-red;
-  &:hover { background: rgba(255, 59, 48, 0.4); }
+  &:hover { background: rgba(255, 59, 48, 0.3); }
 }
 
 .btn-allow {
-  background: rgba(52, 199, 89, 0.2);
+  background: rgba(52, 199, 89, 0.15);
   color: @color-green;
   flex: 1;
-  &:hover { background: rgba(52, 199, 89, 0.4); }
+  &:hover { background: rgba(52, 199, 89, 0.3); }
 }
 
 .btn-allow-always {
-  background: rgba(10, 132, 255, 0.2);
-  color: @color-blue;
-  &:hover { background: rgba(10, 132, 255, 0.4); }
+  background: rgba(0, 113, 227, 0.15);
+  color: @apple-blue-bright;
+  &:hover { background: rgba(0, 113, 227, 0.3); }
 }
 
-// ── 任务列表 ──
+// ── Section Title ──
 
 .section-title {
   font-size: 11px;
+  font-family: @font-text;
   font-weight: 600;
   color: @text-tertiary;
   margin: 10px 0 6px;
@@ -326,22 +358,25 @@ body {
   letter-spacing: 0.5px;
 }
 
+// ── Task List ──
+
 .task-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 4px 0;
   font-size: 12px;
+  letter-spacing: -0.12px;
 }
 
 .task-icon {
   font-size: 10px;
   &.completed { color: @color-green; }
-  &.in-progress { color: @color-blue; }
+  &.in-progress { color: @apple-blue-bright; }
   &.pending { color: @text-muted; }
 }
 
-// ── 工具历史 ──
+// ── Tool History ──
 
 .tool-row {
   display: flex;
@@ -349,13 +384,13 @@ body {
   gap: 8px;
   padding: 3px 0;
   font-size: 11px;
-  color: @text-tool;
+  color: @text-secondary;
 
   .name {
     font-family: @font-mono;
     font-weight: 500;
     width: 50px;
-    color: @text-tool-name;
+    color: rgba(255, 255, 255, 0.75);
   }
 
   .desc {
@@ -371,11 +406,10 @@ body {
   }
 }
 
-// ── AskUserQuestion 卡片 ──
+// ── AskUserQuestion Card ──
 
-@question-bg: rgba(110, 92, 230, 0.1);
-@question-border: rgba(110, 92, 230, 0.3);
-@purple: #6e5ce6;
+@question-bg: rgba(0, 113, 227, 0.08);
+@question-border: rgba(0, 113, 227, 0.2);
 
 .question-card {
   background: @question-bg;
@@ -383,12 +417,13 @@ body {
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 10px;
-  animation: slideIn 0.2s ease-out;
+  animation: slideIn 0.25s @ease-apple;
 
   .question-header {
     font-size: 11px;
+    font-family: @font-display;
     font-weight: 600;
-    color: @purple;
+    color: @apple-blue-bright;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 4px;
@@ -399,7 +434,8 @@ body {
     font-weight: 500;
     color: @text-primary;
     margin-bottom: 10px;
-    line-height: 1.4;
+    line-height: 1.47;                 // Apple body line-height
+    letter-spacing: -0.12px;
   }
 
   .options-container {
@@ -410,24 +446,26 @@ body {
   }
 
   .option-chip {
-    padding: 5px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
-    background: @bg-white-10;
+    padding: 5px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 980px;              // Apple pill
+    background: @bg-white-06;
     color: @text-primary;
     font-size: 12px;
+    font-family: @font-text;
     font-weight: 500;
+    letter-spacing: -0.12px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s @ease-apple;
 
     &:hover {
       background: @bg-white-15;
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.25);
     }
 
     &.selected {
-      background: rgba(110, 92, 230, 0.3);
-      border-color: @purple;
+      background: rgba(0, 113, 227, 0.25);
+      border-color: @apple-blue;
       color: @color-white;
     }
   }
@@ -438,19 +476,22 @@ body {
 
   .other-input {
     width: 100%;
-    padding: 6px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.04);
     color: @text-primary;
     font-size: 12px;
-    font-family: @font-system;
+    font-family: @font-text;
+    letter-spacing: -0.12px;
     outline: none;
+    transition: all 0.2s @ease-apple;
 
     &::placeholder { color: @text-muted; }
     &:focus {
-      border-color: @purple;
-      background: rgba(110, 92, 230, 0.08);
+      border-color: @apple-blue;
+      background: rgba(0, 113, 227, 0.06);
+      box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
     }
   }
 }
@@ -458,22 +499,27 @@ body {
 .btn-submit {
   width: 100%;
   padding: 8px 20px;
-  background: rgba(110, 92, 230, 0.3);
-  color: @purple;
+  background: @apple-blue;
+  color: @color-white;
   border: none;
-  border-radius: 8px;
+  border-radius: 980px;               // Apple pill
   font-size: 12px;
-  font-weight: 600;
+  font-family: @font-text;
+  font-weight: 500;
+  letter-spacing: -0.12px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s @ease-apple;
 
   &:hover {
-    background: rgba(110, 92, 230, 0.5);
-    color: @color-white;
+    background: lighten(@apple-blue, 8%);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 }
 
-// ── 面板头部 ──
+// ── Panel Header ──
 
 .panel-header {
   display: flex;
@@ -483,37 +529,41 @@ body {
   flex-shrink: 0;
 
   .panel-title {
-    font-size: 12px;
+    font-size: 13px;
+    font-family: @font-display;
     font-weight: 600;
-    color: @text-secondary;
+    color: @text-primary;
+    letter-spacing: -0.12px;
   }
 }
 
 .terminal-btn {
-  background: @bg-white-10;
-  border: none;
-  border-radius: 6px;
+  background: @bg-white-06;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
   color: @text-secondary;
   font-size: 11px;
-  padding: 4px 8px;
+  font-family: @font-text;
+  padding: 4px 10px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s @ease-apple;
 
   &:hover {
     background: @bg-white-15;
     color: @color-white;
+    border-color: rgba(255, 255, 255, 0.15);
   }
 }
 
-// ── 多会话列表 ──
+// ── Session List ──
 
 .session-list {
   margin-bottom: 8px;
   flex-shrink: 0;
 
   &.has-sessions {
-    background: @bg-white-10;
-    border-radius: 10px;
+    background: @bg-white-06;
+    border-radius: 12px;
     padding: 4px;
     margin-bottom: 10px;
   }
@@ -525,12 +575,13 @@ body {
     padding: 6px 10px;
     border-radius: 8px;
     font-size: 12px;
+    letter-spacing: -0.12px;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.2s @ease-apple;
 
-    &:hover { background: rgba(255, 255, 255, 0.08); }
+    &:hover { background: @bg-white-06; }
     &.active {
-      background: @bg-white-15;
+      background: @bg-white-10;
       .session-cwd { color: @text-primary; }
     }
 
@@ -548,22 +599,25 @@ body {
       font-size: 11px;
     }
 
-    .dot-idle { background: #666; }
+    .dot-idle { background: @bg-surface-dark-3; }
   }
 }
 
-// ── 日志列表 ──
+// ── Log List ──
 
 .log-list {
   margin-top: 8px;
   flex: 1;
-  min-height: 0;                   // flex child 需要这个才能正确滚动
+  min-height: 0;
   overflow-y: auto;
 
-  // 滚动条
+  // Thin scrollbar (Apple-like)
   &::-webkit-scrollbar { width: 3px; }
   &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: @bg-white-15; border-radius: 2px; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
 
   .log-line {
     display: flex;
@@ -571,8 +625,9 @@ body {
     gap: 8px;
     padding: 3px 0;
     font-size: 12px;
-    color: @text-tool;
-    line-height: 1.5;
+    color: @text-secondary;
+    line-height: 1.47;                 // Apple body line-height
+    letter-spacing: -0.12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -590,8 +645,8 @@ body {
       padding: 0;
     }
 
-    &.running b { color: @color-blue; }
-    &.thinking b { color: #6e5ce6; }
+    &.running b { color: @apple-blue-bright; }
+    &.thinking b { color: @apple-blue; }
     &.complete b { color: @color-green; }
   }
 
@@ -602,8 +657,8 @@ body {
     flex-shrink: 0;
 
     &.dot-done { background: @color-green; }
-    &.dot-running { background: @color-blue; animation: pulse 1.2s infinite; }
-    &.dot-thinking { background: #6e5ce6; animation: glow 1.2s ease-in-out infinite; }
+    &.dot-running { background: @apple-blue-bright; animation: pulse 1.2s infinite; }
+    &.dot-thinking { background: @apple-blue; animation: glow 1.4s ease-in-out infinite; }
     &.dot-complete { background: @color-green; }
   }
 
@@ -615,7 +670,8 @@ body {
     margin-top: 4px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     font-size: 12px;
-    color: #6e5ce6;
+    color: @apple-blue-bright;
     font-weight: 500;
+    letter-spacing: -0.12px;
   }
 }
