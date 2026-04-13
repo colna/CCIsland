@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="Claude Island"
-REPO="presence-io/cc-island"
+REPO="colna/CCIsland"
 
 # Detect architecture
 ARCH=$(uname -m)
