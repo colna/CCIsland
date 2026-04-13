@@ -1,5 +1,27 @@
 # Claude Island 变更记录
 
+## [0.4.0] - 2026-04-13
+
+### feat: Apple 设计系统重构
+- 整体 UI 采用 Apple 设计语言重新设计
+- Apple Blue (#0071e3 / #2997ff) 作为唯一强调色，替换原有多色方案
+- SF Pro Display/Text 字体层级，负 letter-spacing 排版
+- 980px pill radius 按钮与胶囊圆角
+- 展开面板使用 backdrop-filter blur 毛玻璃效果
+- Apple 标准柔和阴影 (3px 5px 30px)
+- 统一文本透明度层级与 ease 过渡曲线
+
+### feat: Apple Design System Skill
+- 新增 `.agents/skills/apple-design/SKILL.md`，为 Claude Code 提供 Apple 设计规范参考
+- 注册为 Claude Code 可用 skill，在 UI 开发时自动应用 Apple 设计语言
+
+### feat: 发布脚本
+- 新增 `scripts/release.sh`，交互式版本发布工具
+- 支持 patch/minor/major 版本选择，自动更新 `package.json` 版本号
+- 自动创建 git tag 并推送触发 CI 构建
+
+---
+
 ## [0.3.1] - 2026-04-10
 
 ### feat: 会话超时自动恢复

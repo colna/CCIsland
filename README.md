@@ -1,92 +1,92 @@
 # Claude Island
 
-macOS Dynamic Island for Claude Code — 将终端中的 Claude Code 执行进度与审批操作，实时展示在屏幕顶部的灵动岛中。
+A all system Dynamic Island for Claude Code — displays real-time execution progress and approval actions from your terminal Claude Code session as a floating island at the top of your screen.
 
 ![Electron](https://img.shields.io/badge/Electron-33+-47848F?logo=electron&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
+[![(Compiler) TypeScript](https://github.com/facebook/react/actions/workflows/compiler_typescript.yml/badge.svg?branch=main)](https://github.com/facebook/react/actions/workflows/compiler_typescript.yml) 
 ![macOS](https://img.shields.io/badge/macOS-Sonoma+-000000?logo=apple&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## 它做什么？
+<p align="center">
+  <img src="docs/design.png" alt="Claude Island Design" width="360" />
+</p>
 
-当你在终端使用 Claude Code 时，Claude Island 会以浮动药丸 / 面板的形式，悬浮在屏幕顶部（类似 iPhone 灵动岛），实时展示：
+---
 
-- **工具执行进度** — 当前正在读写哪个文件、执行什么命令
-- **任务列表** — TodoWrite 产生的任务清单及完成状态
-- **审批请求** — 需要你 Allow / Deny 的权限操作（Bash、Write 等），点击即可决策
-- **通知消息** — Claude 发送的通知 toast
+## Features
 
-整个过程**不会抢占焦点**，不影响你在终端的操作。
+| Feature | Description |
+|---------|-------------|
+| Apple Design | Apple-inspired UI — SF Pro typography, glass blur, Apple Blue accent |
+| Tool Progress | Real-time display of file operations and command execution |
+| Approval Requests | Three-option permission decisions: Allow / Deny / Always |
+| Question Cards | Answer AskUserQuestion directly in the island UI |
+| Multi-Session | Track multiple concurrent sessions, auto-focus the most active |
+| Terminal Jump | ⌘T to jump back to the running terminal window |
+| Timeout Recovery | Auto-detect and recover from stale sessions caused by API errors |
+| Release Script | Interactive `scripts/release.sh` for versioned tag-based releases |
 
-## 工作原理
+Runs entirely **without stealing focus**.
 
-```
-Claude Code (HTTP Hook) ──POST──▶ HookServer (:51515)
-                                       │
-                                  HookRouter
-                                 ╱     │     ╲
-                      SessionState  Approval  WindowManager
-                                   Manager        │
-                                     │        状态切换
-                                     │     hidden/compact/expanded
-                                     ▼
-                              Renderer UI (Electron)
-                                     │
-                              用户点击 Allow/Deny
-                                     │
-                              HTTP Response ──▶ Claude Code
-```
+---
 
-**核心机制：** Claude Code 的 [HTTP Hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) 将事件 POST 到本地 `localhost:51515`。对于 `PermissionRequest` 类型的事件，HTTP 连接保持阻塞，直到用户在灵动岛 UI 上做出 Allow/Deny 决策后才返回响应 —— 实现了**同步审批阻塞**。
+## How It Works
 
-## 快速开始
+![alt text](image.png)
 
-### 前置要求
+Claude Code's [HTTP Hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) POST events to `localhost:51515`. For `PermissionRequest` events, the HTTP connection blocks until the user makes a decision in the island UI — achieving **synchronous approval blocking**.
 
-- macOS 14 (Sonoma) 或更高版本
-- Claude Code CLI 已安装
+---
 
-### 安装
+## Quick Start
 
-**方式一：一键安装（推荐）**
+### Prerequisites
+
+- macOS 14 (Sonoma) or later
+- Claude Code CLI installed
+
+### Install
+
+**One-line install (recommended)**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/presence-io/cc-island/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/colna/CCIsland/main/install.sh | bash
 ```
 
-自动检测 CPU 架构（Apple Silicon / Intel），下载对应版本并安装到 `/Applications`。
+Auto-detects CPU architecture (Apple Silicon / Intel) and installs to `/Applications`.
 
-**方式二：手动下载**
+**Manual download**
 
-前往 [Releases](https://github.com/presence-io/cc-island/releases) 页面，下载对应架构的 DMG 或 ZIP：
+Go to [Releases](https://github.com/colna/CCIsland/releases) and grab the DMG for your architecture:
 
 - `Claude Island-*-arm64.dmg` — Apple Silicon (M1/M2/M3/M4)
 - `Claude Island-*.dmg` — Intel
 
-**方式三：从源码构建**
+**Build from source**
 
 ```bash
-git clone https://github.com/presence-io/cc-island.git
-cd cc-island
+git clone https://github.com/colna/CCIsland.git
+cd CCIsland
 pnpm install --dev
 pnpm dev
 ```
 
-### 注册 Hooks
+### Setup Hooks
 
-首次运行后，需要将 Claude Island 注册到 Claude Code 的 hooks 配置中。有两种方式：
+**Option 1: Tray menu (recommended)**
 
-**方式一：托盘菜单（推荐）**
+Click the tray icon → `Setup Hooks` after launch. Hooks are automatically written to `~/.claude/settings.json`.
 
-启动后点击系统托盘图标 → `Setup Hooks`，自动写入 `~/.claude/settings.json`。
+**Option 2: Manual config**
 
-**方式二：手动配置**
-
-编辑 `~/.claude/settings.json`，添加：
+Edit `~/.claude/settings.json`:
 
 ```json
 {
   "hooks": {
+    "UserPromptSubmit": [
+      { "type": "http", "url": "http://localhost:51515/hook" }
+    ],
     "PreToolUse": [
       { "type": "http", "url": "http://localhost:51515/hook" }
     ],
@@ -95,75 +95,96 @@ pnpm dev
     ],
     "Notification": [
       { "type": "http", "url": "http://localhost:51515/hook" }
+    ],
+    "Stop": [
+      { "type": "http", "url": "http://localhost:51515/hook" }
     ]
   }
 }
 ```
 
-### 卸载 Hooks
+**Remove hooks:** Tray icon → `Remove Hooks`
 
-托盘图标 → `Remove Hooks`，或手动删除 `settings.json` 中的对应条目。
+---
 
-## 面板状态
+## Panel States
 
-| 状态 | 尺寸 | 触发条件 |
-|------|------|----------|
-| **Hidden** | 不可见 | 无活跃会话 |
-| **Compact** | 220×36 药丸 | 工具执行中（5s 后自动收起） |
-| **Expanded** | 380×420 面板 | PermissionRequest / 点击药丸展开 |
+| State | Description | Trigger |
+|-------|-------------|---------|
+| **Hidden** | Invisible | No active session |
+| **Compact** | Pill capsule | Tool use, Thinking, Done |
+| **Expanded** | Full panel | Approval request, Question card, or click the pill |
 
-## 项目结构
+---
+
+## Project Structure
 
 ```
 src/
-├── main/                    # Electron 主进程
-│   ├── index.ts             # 应用入口
-│   ├── hook-server.ts       # HTTP 服务 (端口 51515, 自动回退)
-│   ├── hook-router.ts       # 事件分发路由
-│   ├── window-manager.ts    # 三态窗口管理 + 刘海检测
-│   ├── session-state.ts     # 会话状态跟踪
-│   ├── approval-manager.ts  # Promise 阻塞式审批
-│   ├── ipc-handlers.ts      # IPC 消息处理
-│   ├── hook-installer.ts    # Hooks 注册/卸载
-│   └── tray.ts              # 系统托盘
-├── renderer/                # Electron 渲染进程
-│   ├── index.html           # 药丸 + 面板布局
-│   ├── styles.less          # 深色毛玻璃主题 (Less)
-│   ├── app.ts               # UI 逻辑
-│   └── preload.ts           # contextBridge IPC 桥接
-└── shared/                  # 共享模块
-    ├── types.ts             # 类型定义 + IPC 常量
-    └── tool-description.ts  # 工具描述生成
+├── main/                    # Electron Main Process
+│   ├── index.ts             # App entry
+│   ├── hook-server.ts       # HTTP server (:51515, auto-fallback)
+│   ├── hook-router.ts       # Event dispatcher
+│   ├── window-manager.ts    # Tri-state window + notch detection
+│   ├── session-state.ts     # SessionManager + SessionInstance
+│   ├── approval-manager.ts  # Promise-blocking approval
+│   ├── ipc-handlers.ts      # IPC message handlers
+│   ├── hook-installer.ts    # Hook install/uninstall + health check
+│   ├── tray.ts              # System tray (dynamic icon color)
+│   ├── terminal-jumper.ts   # Terminal jump (AppleScript)
+│   └── chat-parser.ts       # JSONL chat history parser
+├── renderer/                # Electron Renderer Process
+│   ├── index.html           # Pill + panel layout
+│   ├── styles.less          # Apple design system (Less)
+│   ├── app.ts               # UI logic
+│   └── preload.ts           # contextBridge IPC bridge
+├── shared/
+│   ├── types.ts             # Type definitions + IPC channels
+│   └── tool-description.ts  # Tool description generator
+scripts/
+│   └── release.sh           # Interactive version release tool
+.agents/skills/
+│   └── apple-design/        # Apple design system skill for Claude Code
 ```
 
-## 构建与发布
+---
+
+## Build & Release
 
 ```bash
-# 开发模式
+# Dev mode
 pnpm dev
 
-# 编译 TypeScript + Less + 打包 DMG/ZIP
+# Package DMG/ZIP
 pnpm build
 ```
 
-### 自动发布
-
-推送 `v*` 标签时，GitHub Actions 自动构建 arm64 + x64 的 DMG 和 ZIP 并创建 Release：
+**Interactive release** (recommended):
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+./scripts/release.sh
 ```
 
-## 技术栈
+Prompts for version bump type (patch/minor/major), updates `package.json`, creates a git tag, and pushes to trigger GitHub Actions auto-build & release.
 
-| 技术 | 用途 |
-|------|------|
-| Electron 33+ | 窗口管理、系统托盘、IPC |
-| TypeScript 5.5 | 类型安全 |
-| Less | 样式预处理 |
-| Node.js HTTP | Hook 服务（零外部依赖） |
-| electron-builder | 打包分发 |
+**Manual tag release:**
+
+```bash
+git tag v0.4.0
+git push origin v0.4.0
+```
+
+---
+
+## Tech Stack
+
+| Tech | Usage |
+|------|-------|
+| Electron 33+ | Window management, tray, IPC |
+| TypeScript 5.5 | Type safety |
+| Less | Style preprocessing |
+| Node.js HTTP | Hook server (zero external deps) |
+| electron-builder | Packaging & distribution |
 
 ## License
 
