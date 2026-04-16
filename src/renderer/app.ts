@@ -40,10 +40,14 @@ closeBtn.addEventListener('click', function(e) {
 compactView.addEventListener('click', function(e: MouseEvent) {
   if ((e.target as HTMLElement).closest('.close-btn')) return;
   window.claude.togglePanel('expanded');
-  if (latestState) {
-    renderLog(latestState);
-    refreshChatHistory(latestState.sessionId);
-  }
+  // 展开时主动拉取最新状态，避免使用过期缓存
+  window.claude.getState().then(function(state: any) {
+    if (state) {
+      latestState = state;
+      renderLog(state);
+      refreshChatHistory(state.sessionId);
+    }
+  });
 });
 
 expandedView.addEventListener('click', function(e: MouseEvent) {
@@ -61,7 +65,10 @@ if (terminalBtn) {
   terminalBtn.addEventListener('click', function(e) {
     e.stopPropagation();
     window.claude.jumpToTerminal().then(function(result: any) {
-      if (!result.success) {
+      if (result.success) {
+        // 跳转成功后收回灵动岛，避免遮挡终端
+        window.claude.togglePanel('compact');
+      } else {
         statusText.textContent = result.reason === 'unsupported-platform'
           ? 'Terminal jump unsupported'
           : 'No terminal found';
@@ -83,10 +90,14 @@ window.claude.onPanelState((data: any) => {
     case 'expanded':
       compactView.classList.add('hidden');
       expandedView.classList.remove('hidden');
-      if (latestState) {
-        renderLog(latestState);
-        refreshChatHistory(latestState.sessionId);
-      }
+      // 展开时主动拉取最新状态
+      window.claude.getState().then(function(state: any) {
+        if (state) {
+          latestState = state;
+          renderLog(state);
+          refreshChatHistory(state.sessionId);
+        }
+      });
       break;
     case 'hidden':
       compactView.classList.add('hidden');

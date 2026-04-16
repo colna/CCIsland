@@ -17,9 +17,10 @@ struct PhaseColor(u8, u8, u8);
 
 fn phase_color(phase: &str) -> PhaseColor {
     match phase {
-        "thinking" => PhaseColor(110, 92, 230),
-        "tool" | "responding" | "done" => PhaseColor(52, 199, 89),
-        _ => PhaseColor(150, 150, 150),
+        "tool" | "responding" => PhaseColor(41, 151, 255),   // @apple-blue-bright #2997ff
+        "thinking" => PhaseColor(0, 113, 227),               // @apple-blue #0071e3
+        "done" => PhaseColor(52, 199, 89),                   // @color-green #34c759
+        _ => PhaseColor(58, 58, 60),                         // @bg-surface-dark-3 #3a3a3c
     }
 }
 
@@ -89,7 +90,7 @@ pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), Strin
 
     let _tray = TrayIconBuilder::with_id("main")
         .icon(icon)
-        .tooltip("Claude Island — Idle")
+        .tooltip("CCIsland — Idle")
         .menu(&menu)
         .on_menu_event(move |app, event| {
             let shared = shared.clone();
@@ -149,10 +150,10 @@ pub fn update_tray_icon(app: &AppHandle, phase: &str) {
     if let Some(tray) = app.tray_by_id("main") {
         let _ = tray.set_icon(Some(icon));
         let tooltip = match phase {
-            "thinking" => "Claude Island — Thinking...",
-            "tool" => "Claude Island — Executing...",
-            "done" => "Claude Island — Done",
-            _ => "Claude Island — Idle",
+            "thinking" => "CCIsland — Thinking...",
+            "tool" => "CCIsland — Executing...",
+            "done" => "CCIsland — Done",
+            _ => "CCIsland — Idle",
         };
         let _ = tray.set_tooltip(Some(tooltip));
     }

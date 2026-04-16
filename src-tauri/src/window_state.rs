@@ -87,10 +87,8 @@ impl WindowController {
     app.emit("panel-state", json!({ "state": state.as_str() }))
       .map_err(|e| e.to_string())?;
 
-    // Clear tray title when expanding (content visible in island)
-    if state == PanelState::Expanded {
-      tray::update_tray_title(app, "");
-    }
+    // Clear tray title when island is visible (compact or expanded)
+    tray::update_tray_title(app, "");
 
     Ok(())
   }

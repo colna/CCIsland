@@ -323,10 +323,15 @@ fn run_osascript(script: &str) -> bool {
 
 #[cfg(target_os = "macos")]
 fn is_running(bundle_id: &str) -> bool {
-  run_osascript(&format!(
-    "tell application \"System Events\" to (name of processes whose bundle identifier is \"{}\") as text",
-    bundle_id
-  ))
+  Command::new("osascript")
+    .arg("-e")
+    .arg(&format!(
+      "tell application \"System Events\" to (name of processes whose bundle identifier is \"{}\") as text",
+      bundle_id
+    ))
+    .output()
+    .map(|output| output.status.success() && !output.stdout.is_empty() && output.stdout.iter().any(|&b| b != b'\n' && b != b'\r'))
+    .unwrap_or(false)
 }
 
 // ── Windows: PowerShell-based terminal activation ──
@@ -432,7 +437,7 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
     loop {
       interval.tick().await;
       if shared_clone.hook_router.check_stale(90_000).await {
-        eprintln!("[Claude Island] Stale session detected — marking done");
+        eprintln!("[CCIsland] Stale session detected — marking done");
         let snapshot = shared_clone.hook_router.get_state().await;
         let _ = app_clone.emit("state-update", &snapshot);
         let _ = app_clone.emit("session-list", shared_clone.hook_router.get_session_list().await);
@@ -459,7 +464,7 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
       interval.tick().await;
       let port = shared_clone.server_port.lock().await.unwrap_or(51515);
       if !hook_installer::is_installed(port) {
-        eprintln!("[Claude Island] Hooks missing — re-installing");
+        eprintln!("[CCIsland] Hooks missing — re-installing");
         let _ = hook_installer::install_hooks(port);
       }
     }
@@ -475,13 +480,13 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
       let snapshot = shared_clone.hook_router.get_state().await;
       tray::update_tray_icon(&app_clone, &snapshot.phase);
 
-      // Sync tray title: show status when compact/hidden, clear when expanded
+      // Sync tray title: show status only when island is hidden
       let panel_state = shared_clone.window_controller.current_state().await;
-      if panel_state == PanelState::Expanded {
-        tray::update_tray_title(&app_clone, "");
-      } else {
+      if panel_state == PanelState::Hidden {
         let title = tray::compute_status_text(&snapshot);
         tray::update_tray_title(&app_clone, &title);
+      } else {
+        tray::update_tray_title(&app_clone, "");
       }
     }
   });
@@ -507,7 +512,7 @@ fn main() {
       // Setup system tray
       let app_handle = app.handle().clone();
       if let Err(e) = tray::setup_tray(&app_handle, shared.clone()) {
-        eprintln!("[Claude Island] Failed to setup tray: {}", e);
+        eprintln!("[CCIsland] Failed to setup tray: {}", e);
       }
 
       // Spawn hook server
@@ -517,18 +522,18 @@ fn main() {
       tauri::async_runtime::spawn(async move {
         match hook_server::spawn_hook_server(app_handle.clone(), shared_for_server.clone()).await {
           Ok(port) => {
-            eprintln!("[Claude Island] Hook server on port {}", port);
+            eprintln!("[CCIsland] Hook server on port {}", port);
             // Auto-install hooks
             if !hook_installer::is_installed(port) {
               if let Err(e) = hook_installer::install_hooks(port) {
-                eprintln!("[Claude Island] Failed to install hooks: {}", e);
+                eprintln!("[CCIsland] Failed to install hooks: {}", e);
               } else {
-                eprintln!("[Claude Island] Hooks auto-installed");
+                eprintln!("[CCIsland] Hooks auto-installed");
               }
             }
           }
           Err(e) => {
-            eprintln!("[Claude Island] Failed to start hook server: {}", e);
+            eprintln!("[CCIsland] Failed to start hook server: {}", e);
           }
         }
 
