@@ -20,6 +20,8 @@ import type { HookEvent, PanelState } from '../shared/types';
 import { IPC_CHANNELS } from '../shared/types';
 import type { ApprovalManager } from './approval-manager';
 
+const isMac = process.platform === 'darwin';
+
 export class WindowManager {
   private win: BrowserWindow | null = null;
   private state: PanelState = 'hidden';
@@ -132,12 +134,12 @@ export class WindowManager {
 
     const workArea = display.workArea;
     const menuBarHeight = workArea.y;
-    const hasNotch = menuBarHeight > 25;
+    const hasNotch = isMac && menuBarHeight > 25;
 
     const width = 440;
     const height = state === 'compact' ? 36 : 360;
     const x = Math.round(screenW / 2 - width / 2);
-    const y = hasNotch ? menuBarHeight + 6 : menuBarHeight + 4;
+    const y = isMac ? (hasNotch ? menuBarHeight + 6 : menuBarHeight + 4) : workArea.y + 8;
 
     return { x, y, width, height };
   }

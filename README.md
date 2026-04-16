@@ -1,14 +1,19 @@
-# Claude Island
+# CCIsland
 
-A all system Dynamic Island for Claude Code — displays real-time execution progress and approval actions from your terminal Claude Code session as a floating island at the top of your screen.
+CCIsland is a Dynamic Island for Claude Code on macOS and Windows — displays real-time execution progress and approval actions from your terminal Claude Code session as a floating island at the top of your screen.
 
 ![Electron](https://img.shields.io/badge/Electron-33+-47848F?logo=electron&logoColor=white)
 [![(Compiler) TypeScript](https://github.com/facebook/react/actions/workflows/compiler_typescript.yml/badge.svg?branch=main)](https://github.com/facebook/react/actions/workflows/compiler_typescript.yml) 
 ![macOS](https://img.shields.io/badge/macOS-Sonoma+-000000?logo=apple&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-10%2B-0078D6?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 <p align="center">
-  <img src="docs/design.png" alt="Claude Island Design" width="360" />
+  <img src="docs/icon.png" alt="CCIsland Icon" width="120" />
+</p>
+
+<p align="center">
+  <img src="docs/design.png" alt="CCIsland Design" width="360" />
 </p>
 
 ---
@@ -42,12 +47,12 @@ Claude Code's [HTTP Hooks](https://docs.anthropic.com/en/docs/claude-code/hooks)
 
 ### Prerequisites
 
-- macOS 14 (Sonoma) or later
+- macOS 14 (Sonoma) or later, or Windows 10+
 - Claude Code CLI installed
 
 ### Install
 
-**One-line install (recommended)**
+**macOS one-line install (recommended)**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/colna/CCIsland/main/install.sh | bash
@@ -57,10 +62,12 @@ Auto-detects CPU architecture (Apple Silicon / Intel) and installs to `/Applicat
 
 **Manual download**
 
-Go to [Releases](https://github.com/colna/CCIsland/releases) and grab the DMG for your architecture:
+Go to [Releases](https://github.com/colna/CCIsland/releases) and download the package for your platform:
 
-- `Claude Island-*-arm64.dmg` — Apple Silicon (M1/M2/M3/M4)
-- `Claude Island-*.dmg` — Intel
+- macOS: `.dmg` or `.zip`
+- Windows: `.exe` (NSIS installer) or `.zip`
+
+Current Windows support is focused on basic runtime compatibility. Some macOS-specific behavior, such as terminal jump, is unavailable on Windows.
 
 **Build from source**
 
@@ -155,8 +162,14 @@ scripts/
 # Dev mode
 pnpm dev
 
-# Package DMG/ZIP
+# Package current platform
 pnpm build
+
+# Package macOS only
+pnpm build:mac
+
+# Package Windows only
+pnpm build:win
 ```
 
 **Interactive release** (recommended):
@@ -165,7 +178,7 @@ pnpm build
 ./scripts/release.sh
 ```
 
-Prompts for version bump type (patch/minor/major), updates `package.json`, creates a git tag, and pushes to trigger GitHub Actions auto-build & release.
+Prompts for version bump type (patch/minor/major), updates `package.json`, creates a git tag, and pushes to trigger GitHub Actions auto-build & release for macOS and Windows.
 
 **Manual tag release:**
 

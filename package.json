@@ -5,8 +5,13 @@
   "main": "dist/main/index.js",
   "scripts": {
     "less": "lessc src/renderer/styles.less dist/renderer/styles.css",
-    "dev": "tsc && pnpm less && cp src/renderer/index.html dist/renderer/ && electron .",
-    "build": "tsc && pnpm less && cp src/renderer/index.html dist/renderer/ && electron-builder",
+    "prepare:renderer": "node -e \"const fs=require('node:fs');fs.mkdirSync('dist/renderer',{recursive:true});fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html');\"",
+    "build:ts": "tsc",
+    "build:assets": "pnpm less && pnpm prepare:renderer",
+    "dev": "pnpm build:ts && pnpm build:assets && electron .",
+    "build": "pnpm build:ts && pnpm build:assets && electron-builder",
+    "build:mac": "pnpm build:ts && pnpm build:assets && electron-builder --mac",
+    "build:win": "pnpm build:ts && pnpm build:assets && electron-builder --win",
     "watch": "tsc --watch",
     "install-hooks": "ts-node scripts/install-hooks.ts",
     "remove-hooks": "ts-node scripts/remove-hooks.ts",
@@ -27,12 +32,16 @@
   "build": {
     "appId": "com.cc-island.app",
     "productName": "Claude Island",
+    "icon": "docs/icon.png",
     "files": [
-      "dist/**/*",
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "dist/shared/**/*",
       "package.json"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
+      "icon": "docs/icon.png",
       "target": [
         {
           "target": "dmg",
@@ -53,6 +62,25 @@
       "extendInfo": {
         "LSUIElement": true
       }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "icon": "docs/icon.png"
     }
   }
 }

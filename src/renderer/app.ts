@@ -56,7 +56,9 @@ if (terminalBtn) {
     e.stopPropagation();
     window.claude.jumpToTerminal().then(function(result: any) {
       if (!result.success) {
-        statusText.textContent = 'No terminal found';
+        statusText.textContent = result.reason === 'unsupported-platform'
+          ? 'Terminal jump unsupported'
+          : 'No terminal found';
         setTimeout(function() { statusText.textContent = 'Claude Code'; }, 2000);
       }
     });

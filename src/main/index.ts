@@ -27,10 +27,13 @@ let server: HookServer;
 const sessionManager = new SessionManager();
 const approvalManager = new ApprovalManager();
 const windowManager = new WindowManager();
+const isMac = process.platform === 'darwin';
 
 app.whenReady().then(async () => {
   // 隐藏 Dock 图标 (纯菜单栏 App)
-  app.dock?.hide();
+  if (isMac) {
+    app.dock?.hide();
+  }
 
   // 创建灵动岛窗口
   mainWindow = createIslandWindow();
@@ -92,13 +95,12 @@ function createIslandWindow(): BrowserWindow {
   const display = screen.getPrimaryDisplay();
   const { width: screenWidth } = display.size;
 
-  // 计算刘海机型的 y 偏移: 把药丸推进菜单栏区域
   const workArea = display.workArea;
   const menuBarH = workArea.y;
-  const hasNotch = menuBarH > 25;
-  const initialY = hasNotch ? menuBarH + 6 : menuBarH + 4;
+  const hasNotch = isMac && menuBarH > 25;
+  const initialY = isMac ? (hasNotch ? menuBarH + 6 : menuBarH + 4) : workArea.y + 8;
 
-  const win = new BrowserWindow({
+  const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: 440,
     height: 36,
     x: Math.round(screenWidth / 2 - 220),
@@ -113,20 +115,29 @@ function createIslandWindow(): BrowserWindow {
     resizable: false,
     movable: false,
     show: false,
-    type: 'panel', // macOS: 面板级窗口, 不激活父应用
 
     webPreferences: {
       preload: path.join(__dirname, '..', 'renderer', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-  });
+  };
+
+  if (isMac) {
+    windowOptions.type = 'panel'; // macOS: 面板级窗口, 不激活父应用
+  }
+
+  const win = new BrowserWindow(windowOptions);
 
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
-  // screen-saver level: 覆盖菜单栏/刘海区域
-  win.setAlwaysOnTop(true, 'screen-saver');
+  if (isMac) {
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    // screen-saver level: 覆盖菜单栏/刘海区域
+    win.setAlwaysOnTop(true, 'screen-saver');
+  } else {
+    win.setAlwaysOnTop(true);
+  }
 
   // 打印 renderer 日志到主进程终端
   win.webContents.on('console-message', (_e, _level, message) => {

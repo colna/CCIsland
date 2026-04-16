@@ -7,6 +7,8 @@
 
 import { execSync } from 'node:child_process';
 
+const isMac = process.platform === 'darwin';
+
 const TERMINALS = [
   { name: 'iTerm2', bundleId: 'com.googlecode.iterm2', script: 'tell application "iTerm" to activate' },
   { name: 'Terminal', bundleId: 'com.apple.Terminal', script: 'tell application "Terminal" to activate' },
@@ -31,7 +33,11 @@ function isRunning(bundleId: string): boolean {
 }
 
 /** 跳转到第一个检测到的终端 */
-export function jumpToTerminal(): { success: boolean; app?: string } {
+export function jumpToTerminal(): { success: boolean; app?: string; reason?: string } {
+  if (!isMac) {
+    return { success: false, reason: 'unsupported-platform' };
+  }
+
   for (const terminal of TERMINALS) {
     if (isRunning(terminal.bundleId)) {
       try {
@@ -55,6 +61,6 @@ export function jumpToTerminal(): { success: boolean; app?: string } {
     });
     return { success: true, app: 'Terminal' };
   } catch {
-    return { success: false };
+    return { success: false, reason: 'not-found' };
   }
 }

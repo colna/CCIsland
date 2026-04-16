@@ -1,0 +1,1 @@
+项目是一个 macOS 菜单栏/Electron 应用 "CCIsland"，为 Claude Code 提供灵动岛式浮窗，展示工具执行进度、审批请求、问题卡片和多会话状态。技术栈：Electron 33、TypeScript 5.5、Less、electron-builder。主结构：src/main 负责主进程/托盘/hooks/server/window/session；src/renderer 负责岛 UI；src/shared 放共享类型。

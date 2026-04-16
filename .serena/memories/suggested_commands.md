@@ -1,0 +1,1 @@
+常用命令：`pnpm dev` 启动开发模式；`pnpm build` 打包 DMG/ZIP；`pnpm less` 编译样式；`pnpm watch` 运行 TypeScript watch；`pnpm install-hooks` / `pnpm remove-hooks` 安装或移除 Claude hooks；`./scripts/release.sh` 交互式发布。系统是 Darwin，可用 `git`, `ls`, `cd`, `open`, `pbcopy` 等常用命令。
