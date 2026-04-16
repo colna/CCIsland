@@ -4,7 +4,7 @@ use serde_json::json;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Size};
 use tokio::sync::Mutex;
 
-use crate::shared_types::PanelState;
+use crate::{shared_types::PanelState, tray};
 
 struct WindowControlState {
   state: PanelState,
@@ -86,6 +86,12 @@ impl WindowController {
 
     app.emit("panel-state", json!({ "state": state.as_str() }))
       .map_err(|e| e.to_string())?;
+
+    // Clear tray title when expanding (content visible in island)
+    if state == PanelState::Expanded {
+      tray::update_tray_title(app, "");
+    }
+
     Ok(())
   }
 

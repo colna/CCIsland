@@ -7,7 +7,7 @@ use tauri::{
     AppHandle,
 };
 
-use crate::{shared_types::PanelState, SharedState};
+use crate::{shared_types::{PanelState, SessionSnapshot}, SharedState};
 
 const ICON_SIZE: u32 = 32;
 const CIRCLE_RADIUS: f64 = 12.0;
@@ -155,5 +155,48 @@ pub fn update_tray_icon(app: &AppHandle, phase: &str) {
             _ => "Claude Island — Idle",
         };
         let _ = tray.set_tooltip(Some(tooltip));
+    }
+}
+
+const MAX_TITLE_LEN: usize = 40;
+
+fn truncate_title(s: &str) -> String {
+    if s.chars().count() <= MAX_TITLE_LEN {
+        s.to_string()
+    } else {
+        let truncated: String = s.chars().take(MAX_TITLE_LEN).collect();
+        format!("{}…", truncated)
+    }
+}
+
+/// Compute status text from session snapshot, mirroring the compact-view logic in app.ts.
+pub fn compute_status_text(snapshot: &SessionSnapshot) -> String {
+    match snapshot.phase.as_str() {
+        "tool" => {
+            if let Some(ref tool) = snapshot.current_tool {
+                truncate_title(&format!("{}: {}", tool.tool_name, tool.description))
+            } else {
+                "Executing...".to_string()
+            }
+        }
+        "thinking" => {
+            if let Some(last) = snapshot.recent_tools.last() {
+                truncate_title(&format!("{}: {}", last.tool_name, last.description))
+            } else {
+                "Thinking...".to_string()
+            }
+        }
+        "done" => {
+            let msg = snapshot.last_message.as_deref().unwrap_or("Done");
+            truncate_title(msg)
+        }
+        _ => String::new(), // idle — clear title
+    }
+}
+
+/// Update the tray icon title text displayed next to the icon in the menu bar.
+pub fn update_tray_title(app: &AppHandle, title: &str) {
+    if let Some(tray) = app.tray_by_id("main") {
+        let _ = tray.set_title(Some(title));
     }
 }

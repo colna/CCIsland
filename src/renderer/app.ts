@@ -316,7 +316,7 @@ window.claude.onQuestionRequest((data: any) => {
       }
 
       // 闭包捕获变量
-      (function(chipEl: HTMLElement, qKey: string, label: string, isMulti: boolean, container: HTMLElement) {
+      (function(chipEl: HTMLElement, qKey: string, label: string, isMulti: boolean, container: HTMLElement, qIdx: number) {
         chipEl.addEventListener('click', function(e) {
           e.stopPropagation();
           if (isMulti) {
@@ -331,12 +331,14 @@ window.claude.onQuestionRequest((data: any) => {
             }
             chipEl.classList.add('selected');
             selections[qKey] = label;
+            // 清空 Other 输入
+            var otherInput = card.querySelectorAll('.other-input')[qIdx] as HTMLInputElement;
+            if (otherInput) otherInput.value = '';
+            // 所有单选问题都选好后自动提交
+            tryAutoSubmit();
           }
-          // 清空 Other 输入
-          var otherInput = card.querySelectorAll('.other-input')[qi] as HTMLInputElement;
-          if (otherInput && !isMulti) otherInput.value = '';
         });
-      })(chip, questionKey, opt.label, q.multiSelect, optionsContainer);
+      })(chip, questionKey, opt.label, q.multiSelect, optionsContainer, qi);
 
       optionsContainer.appendChild(chip);
     }
@@ -368,13 +370,11 @@ window.claude.onQuestionRequest((data: any) => {
     card.appendChild(otherRow);
   }
 
-  // Submit 按钮
-  var submitBtn = document.createElement('button');
-  submitBtn.className = 'btn btn-submit';
-  submitBtn.textContent = 'Submit';
-  submitBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    // 收集最终答案
+  // ── 提交逻辑 ──
+  var submitted = false;
+  function submitAnswers() {
+    if (submitted) return;
+    submitted = true;
     var finalAnswers: Record<string, string | string[]> = {};
     var otherInputs = card.querySelectorAll('.other-input') as NodeListOf<HTMLInputElement>;
     for (var i = 0; i < data.questions.length; i++) {
@@ -386,9 +386,29 @@ window.claude.onQuestionRequest((data: any) => {
         finalAnswers[qKey] = selections[qKey] || '';
       }
     }
-
     window.claude.answerQuestion(data.id, finalAnswers, data.questions);
     card.remove();
+  }
+
+  // 检查所有单选问题是否已有选择，若是则自动提交
+  function tryAutoSubmit() {
+    for (var i = 0; i < data.questions.length; i++) {
+      var qKey = data.questions[i].question;
+      var val = selections[qKey];
+      if (data.questions[i].multiSelect) return; // multiSelect 需要手动提交
+      if (!val || val === '') return;
+    }
+    // 所有单选问题都已选择 — 短暂延迟后自动提交，让用户看到选中效果
+    setTimeout(submitAnswers, 150);
+  }
+
+  // Submit 按钮（兜底，multiSelect 或用户手动提交）
+  var submitBtn = document.createElement('button');
+  submitBtn.className = 'btn btn-submit';
+  submitBtn.textContent = 'Submit';
+  submitBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    submitAnswers();
   }, { once: true });
 
   card.appendChild(submitBtn);

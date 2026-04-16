@@ -10,6 +10,7 @@ use crate::{
     PanelState, PermissionDecision, QuestionItem, QuestionOption, QuestionRequestData,
     SessionListItem, SessionSnapshot, TaskItem, ToolActivity,
   },
+  tray,
   SharedState,
 };
 
@@ -46,7 +47,7 @@ impl HookRouter {
     self.update_session(&event).await;
     eprintln!("[HookRouter] handle event={} tool={:?} session={}", event.hook_event_name, event.tool_name, event.session_id);
     self.auto_panel_for_event(&event, app, shared).await?;
-    self.emit_state(app).await?;
+    self.emit_state(app, shared).await?;
 
     match hook_name.as_str() {
       "PermissionRequest" => self.handle_permission_request(event, app, shared).await,
@@ -159,11 +160,24 @@ impl HookRouter {
     });
   }
 
-  async fn emit_state(&self, app: &AppHandle) -> Result<(), String> {
-    app.emit("state-update", self.get_state().await)
+  async fn emit_state(&self, app: &AppHandle, shared: &SharedState) -> Result<(), String> {
+    let snapshot = self.get_state().await;
+    app.emit("state-update", &snapshot)
       .map_err(|e| e.to_string())?;
     app.emit("session-list", self.get_session_list().await)
       .map_err(|e| e.to_string())?;
+
+    // Sync tray title: show status text only when island is hidden, clear otherwise
+    let panel_state = shared.window_controller.current_state().await;
+    if panel_state == PanelState::Hidden {
+      let title = tray::compute_status_text(&snapshot);
+      tray::update_tray_title(app, &title);
+    } else {
+      tray::update_tray_title(app, "");
+    }
+    // Also sync tray icon color
+    tray::update_tray_icon(app, &snapshot.phase);
+
     Ok(())
   }
 

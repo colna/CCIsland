@@ -465,7 +465,7 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
     }
   });
 
-  // Tray icon phase sync: every 5s, update tray icon to match current session phase
+  // Tray icon phase sync + title sync: every 5s
   let app_clone = app.clone();
   let shared_clone = shared.clone();
   tauri::async_runtime::spawn(async move {
@@ -474,6 +474,15 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
       interval.tick().await;
       let snapshot = shared_clone.hook_router.get_state().await;
       tray::update_tray_icon(&app_clone, &snapshot.phase);
+
+      // Sync tray title: show status when compact/hidden, clear when expanded
+      let panel_state = shared_clone.window_controller.current_state().await;
+      if panel_state == PanelState::Expanded {
+        tray::update_tray_title(&app_clone, "");
+      } else {
+        let title = tray::compute_status_text(&snapshot);
+        tray::update_tray_title(&app_clone, &title);
+      }
     }
   });
 }
