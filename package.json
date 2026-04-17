@@ -1,86 +1,18 @@
 {
-  "name": "cc-island",
-  "version": "0.2.5",
-  "description": "macOS Dynamic Island for Claude Code — 灵动岛审批与进度展示",
-  "main": "dist/main/index.js",
+  "name": "ccisland",
+  "version": "0.3.0",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
-    "less": "lessc src/renderer/styles.less dist/renderer/styles.css",
-    "prepare:renderer": "node -e \"const fs=require('node:fs');fs.mkdirSync('dist/renderer',{recursive:true});fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html');\"",
-    "build:ts": "tsc",
-    "build:assets": "pnpm less && pnpm prepare:renderer",
-    "dev": "pnpm build:ts && pnpm build:assets && electron .",
-    "build": "pnpm build:ts && pnpm build:assets && electron-builder",
-    "build:mac": "pnpm build:ts && pnpm build:assets && electron-builder --mac",
-    "build:win": "pnpm build:ts && pnpm build:assets && electron-builder --win",
-    "watch": "tsc --watch",
-    "install-hooks": "ts-node scripts/install-hooks.ts",
-    "remove-hooks": "ts-node scripts/remove-hooks.ts",
-    "release": "bash scripts/release.sh"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "typecheck": "turbo typecheck",
+    "tauri:dev": "pnpm --filter @ccisland/desktop tauri:dev",
+    "tauri:build": "pnpm --filter @ccisland/desktop tauri:build",
+    "site:dev": "pnpm --filter @ccisland/site dev",
+    "site:build": "pnpm --filter @ccisland/site build"
   },
   "devDependencies": {
-    "electron": "^33.4.11",
-    "electron-builder": "^25.1.8",
-    "less": "^4.6.4",
-    "ts-node": "^10.9.0",
-    "typescript": "5.5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron"
-    ]
-  },
-  "build": {
-    "appId": "com.cc-island.app",
-    "productName": "Claude Island",
-    "icon": "docs/icon.png",
-    "files": [
-      "dist/main/**/*",
-      "dist/renderer/**/*",
-      "dist/shared/**/*",
-      "package.json"
-    ],
-    "mac": {
-      "category": "public.app-category.developer-tools",
-      "icon": "docs/icon.png",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        }
-      ],
-      "hardenedRuntime": true,
-      "extendInfo": {
-        "LSUIElement": true
-      }
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "dmg": {
-      "icon": "docs/icon.png"
-    }
+    "turbo": "^2"
   }
 }

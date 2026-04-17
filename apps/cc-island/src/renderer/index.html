@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <link rel="stylesheet" href="styles.css">
+  <title>Claude Island</title>
+</head>
+<body>
+  <!-- 紧凑态: 药丸 -->
+  <div id="compact-view" class="compact">
+    <span class="status-dot"></span>
+    <span class="status-text">Claude Code</span>
+    <span class="close-btn">&times;</span>
+  </div>
+
+  <!-- 展开态: 会话列表 + 审批/问题 + 聊天历史 + 日志 -->
+  <div id="expanded-view" class="expanded hidden">
+    <div class="panel-header">
+      <span class="panel-title">Claude Code</span>
+      <label id="auto-approve-toggle" class="auto-approve-toggle" title="Auto Approve">
+        <input type="checkbox" id="auto-approve-checkbox">
+        <span class="toggle-track">
+          <span class="toggle-thumb"></span>
+        </span>
+        <span class="toggle-label">Auto</span>
+      </label>
+      <button id="terminal-btn" class="terminal-btn" title="Jump to Terminal">&#x2318;T</button>
+    </div>
+    <div id="session-list" class="session-list"></div>
+    <div id="approvals"></div>
+    <div id="chat-history" class="chat-history hidden"></div>
+    <div id="log-list" class="log-list"></div>
+  </div>
+
+  <script src="tauri-bridge.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

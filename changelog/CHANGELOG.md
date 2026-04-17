@@ -1,6 +1,60 @@
 # Claude Island 变更记录
 
-## [0.4.0] - 2026-04-13
+## [0.2.6] - 2026-04-17
+
+### feat: Electron → Tauri v2 重构
+- 后端从 Electron 完全迁移至 Tauri v2 (Rust)
+- 新增 Rust 模块: `main.rs`、`hook_server.rs`、`hook_router.rs`、`approval_manager.rs`、`hook_installer.rs`、`tray.rs`、`window_state.rs`、`shared_types.rs`
+- 前端适配 Tauri IPC: 新增 `tauri-bridge.ts` 替代 Electron contextBridge
+- 应用体积与内存占用大幅降低
+
+### feat: Monorepo 架构
+- 项目重构为 pnpm workspace + Turborepo monorepo
+- `apps/cc-island/` — 桌面客户端 (Tauri)
+- `apps/site/` — 官方网站 (Next.js)
+- `packages/shared/` — 共享类型与工具模块
+- 新增 `turbo.json`、`pnpm-workspace.yaml` 配置
+
+### feat: 官方网站
+- Next.js + Tailwind CSS 构建，部署 GitHub Pages
+- Hero 动画、Feature Scenes、FAQ、下载页、隐私政策页
+- 交互式灵动岛 Demo 组件 (`island-demo.tsx`、`island-mockups.tsx`)
+- Reveal 滚动入场动画、平台支持说明
+- 新增 `site.yml` GitHub Actions 自动部署工作流
+
+### feat: 权限请求自动批准开关
+- 新增 Auto-Approve 功能，启用后权限请求自动放行（AskUserQuestion 除外）
+- 支持托盘菜单和展开面板两种切换方式，状态双向同步
+
+### fix: 代码审查修复 (C1-C4, W1-W7, S1, S7)
+- C1: `unique_id()` 改用 AtomicU64 计数器避免碰撞
+- C2: `and_then(Some(...))` 替换为 `map()` (Clippy lint)
+- C3: 新增过期审批清理，防止残留条目
+- C4: 应用退出时通过 `RunEvent::Exit` 自动移除 hooks
+- W1: 去重 `settings_path()`，复用 hook_installer 版本
+- W2: `block_on` 替换为 `AtomicU16` 获取 server_port
+- W3: `shorten_path` 将 `$HOME` 替换为 `~`
+- W6: transcript 解析改用 `spawn_blocking` 异步执行
+- W7: Windows CI 设置 `x86_64-pc-windows-msvc` target
+- S1: `app.ts` 中 `var` 替换为 `let`
+
+### chore: CI/CD
+- `release.yml` 适配 Tauri v2 构建流程
+- 新增 `site.yml` 官方网站自动部署
+
+---
+
+## [0.2.5] - 2026-04-16
+
+### fix: Windows 打包
+- 修复 Windows 平台构建与打包问题
+
+### feat: 安装脚本
+- 新增安装脚本，简化用户安装流程
+
+---
+
+## [0.2.4] - 2026-04-13
 
 ### feat: Apple 设计系统重构
 - 整体 UI 采用 Apple 设计语言重新设计
@@ -22,33 +76,7 @@
 
 ---
 
-## [0.3.1] - 2026-04-10
-
-### feat: 会话超时自动恢复
-- Claude Code 遇到 API 错误（如 nginx 400）时可能不发送 Stop/SessionEnd 事件，灵动岛卡在 "Thinking..."
-- 新增 90 秒超时检测（每 15 秒运行），超时后自动将 thinking/tool 状态转为 done
-- 显示 "Session timed out" 消息，紫色呼吸灯变绿色完成态
-- `SessionInstance.checkStale()` + `SessionManager.checkStale()` 方法
-
-### fix: 审批卡片幽灵残留
-- Claude Code 自动允许权限（连接中断/AbortSignal）时，审批卡片不再残留在面板中
-- 新增 `APPROVAL_DISMISSED` IPC 通道，后端 abort 时通知 Renderer 移除对应卡片
-
-### fix: 展开面板滚动区域
-- 固定 header 和会话列表在顶部，仅日志区域可滚动
-- 解决展开态内容溢出时整个面板跟着滚动的问题
-
-### fix: 多会话列表样式与交互
-- 修复会话列表容器样式（间距、圆点颜色、hover 效果）
-- 修复点击会话行切换焦点会话的交互
-
-### fix: Hooks 被外部覆盖后自动恢复
-- `hook-installer.ts` 改用合并策略写入 settings.json，保留其他工具的 hooks
-- 定期检查（每 30 秒）发现 hooks 缺失时自动重新安装
-
----
-
-## [0.3.0] - 2026-04-10
+## [0.2.3] - 2026-04-10
 
 ### feat: AskUserQuestion 交互支持
 - 检测 `PermissionRequest` 中 `tool_name === 'AskUserQuestion'`，显示紫色问题卡片
@@ -88,6 +116,28 @@
 ### feat: 展开面板头部
 - 展开态新增 panel-header，包含 "Claude Code" 标题和终端跳转按钮
 - 展开态点击选项 chips、输入框、按钮时不会触发面板收起
+
+### feat: 会话超时自动恢复
+- Claude Code 遇到 API 错误（如 nginx 400）时可能不发送 Stop/SessionEnd 事件，灵动岛卡在 "Thinking..."
+- 新增 90 秒超时检测（每 15 秒运行），超时后自动将 thinking/tool 状态转为 done
+- 显示 "Session timed out" 消息，紫色呼吸灯变绿色完成态
+- `SessionInstance.checkStale()` + `SessionManager.checkStale()` 方法
+
+### fix: 审批卡片幽灵残留
+- Claude Code 自动允许权限（连接中断/AbortSignal）时，审批卡片不再残留在面板中
+- 新增 `APPROVAL_DISMISSED` IPC 通道，后端 abort 时通知 Renderer 移除对应卡片
+
+### fix: 展开面板滚动区域
+- 固定 header 和会话列表在顶部，仅日志区域可滚动
+- 解决展开态内容溢出时整个面板跟着滚动的问题
+
+### fix: 多会话列表样式与交互
+- 修复会话列表容器样式（间距、圆点颜色、hover 效果）
+- 修复点击会话行切换焦点会话的交互
+
+### fix: Hooks 被外部覆盖后自动恢复
+- `hook-installer.ts` 改用合并策略写入 settings.json，保留其他工具的 hooks
+- 定期检查（每 30 秒）发现 hooks 缺失时自动重新安装
 
 ---
 

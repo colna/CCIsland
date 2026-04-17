@@ -1,9 +1,12 @@
+**English** | [中文](./README.zh-CN.md)
+
 # CCIsland
 
 CCIsland is a Dynamic Island for Claude Code on macOS and Windows — displays real-time execution progress and approval actions from your terminal Claude Code session as a floating island at the top of your screen.
 
-![Electron](https://img.shields.io/badge/Electron-33+-47848F?logo=electron&logoColor=white)
-[![(Compiler) TypeScript](https://github.com/facebook/react/actions/workflows/compiler_typescript.yml/badge.svg?branch=main)](https://github.com/facebook/react/actions/workflows/compiler_typescript.yml) 
+![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-2021-000000?logo=rust&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Sonoma+-000000?logo=apple&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-0078D6?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -29,7 +32,6 @@ CCIsland is a Dynamic Island for Claude Code on macOS and Windows — displays r
 | Multi-Session | Track multiple concurrent sessions, auto-focus the most active |
 | Terminal Jump | ⌘T to jump back to the running terminal window |
 | Timeout Recovery | Auto-detect and recover from stale sessions caused by API errors |
-| Release Script | Interactive `scripts/release.sh` for versioned tag-based releases |
 
 Runs entirely **without stealing focus**.
 
@@ -64,8 +66,8 @@ Auto-detects CPU architecture (Apple Silicon / Intel) and installs to `/Applicat
 
 Go to [Releases](https://github.com/colna/CCIsland/releases) and download the package for your platform:
 
-- macOS: `.dmg` or `.zip`
-- Windows: `.exe` (NSIS installer) or `.zip`
+- macOS: `.dmg` or `.app.tar.gz`
+- Windows: `.msi` or `.exe` (NSIS installer)
 
 Current Windows support is focused on basic runtime compatibility. Some macOS-specific behavior, such as terminal jump, is unavailable on Windows.
 
@@ -74,9 +76,11 @@ Current Windows support is focused on basic runtime compatibility. Some macOS-sp
 ```bash
 git clone https://github.com/colna/CCIsland.git
 cd CCIsland
-pnpm install --dev
-pnpm dev
+pnpm install
+pnpm tauri:dev
 ```
+
+> Requires [Rust toolchain](https://rustup.rs/) and [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ### Setup Hooks
 
@@ -127,31 +131,27 @@ Edit `~/.claude/settings.json`:
 ## Project Structure
 
 ```
+src-tauri/                       # Tauri / Rust backend
+├── src/
+│   ├── main.rs                  # App entry + Tauri commands
+│   ├── hook_server.rs           # Axum HTTP server (:51515)
+│   ├── hook_router.rs           # Event dispatcher + session state
+│   ├── approval_manager.rs      # Async oneshot approval blocking
+│   ├── window_state.rs          # Tri-state window controller
+│   ├── hook_installer.rs        # Hook install/uninstall
+│   ├── tray.rs                  # System tray (dynamic icon)
+│   └── shared_types.rs          # Shared type definitions
+├── Cargo.toml                   # Rust dependencies
+└── tauri.conf.json              # Tauri window & bundle config
 src/
-├── main/                    # Electron Main Process
-│   ├── index.ts             # App entry
-│   ├── hook-server.ts       # HTTP server (:51515, auto-fallback)
-│   ├── hook-router.ts       # Event dispatcher
-│   ├── window-manager.ts    # Tri-state window + notch detection
-│   ├── session-state.ts     # SessionManager + SessionInstance
-│   ├── approval-manager.ts  # Promise-blocking approval
-│   ├── ipc-handlers.ts      # IPC message handlers
-│   ├── hook-installer.ts    # Hook install/uninstall + health check
-│   ├── tray.ts              # System tray (dynamic icon color)
-│   ├── terminal-jumper.ts   # Terminal jump (AppleScript)
-│   └── chat-parser.ts       # JSONL chat history parser
-├── renderer/                # Electron Renderer Process
-│   ├── index.html           # Pill + panel layout
-│   ├── styles.less          # Apple design system (Less)
-│   ├── app.ts               # UI logic
-│   └── preload.ts           # contextBridge IPC bridge
+├── renderer/                    # Frontend (WebView)
+│   ├── index.html               # Pill + panel layout
+│   ├── styles.less              # Apple design system (Less)
+│   ├── app.ts                   # UI logic
+│   └── tauri-bridge.ts          # @tauri-apps/api bridge
 ├── shared/
-│   ├── types.ts             # Type definitions + IPC channels
-│   └── tool-description.ts  # Tool description generator
-scripts/
-│   └── release.sh           # Interactive version release tool
-.agents/skills/
-│   └── apple-design/        # Apple design system skill for Claude Code
+│   ├── types.ts                 # Type definitions
+│   └── tool-description.ts      # Tool description generator
 ```
 
 ---
@@ -160,31 +160,10 @@ scripts/
 
 ```bash
 # Dev mode
-pnpm dev
+pnpm tauri:dev
 
 # Package current platform
-pnpm build
-
-# Package macOS only
-pnpm build:mac
-
-# Package Windows only
-pnpm build:win
-```
-
-**Interactive release** (recommended):
-
-```bash
-./scripts/release.sh
-```
-
-Prompts for version bump type (patch/minor/major), updates `package.json`, creates a git tag, and pushes to trigger GitHub Actions auto-build & release for macOS and Windows.
-
-**Manual tag release:**
-
-```bash
-git tag v0.4.0
-git push origin v0.4.0
+pnpm tauri:build
 ```
 
 ---
@@ -193,11 +172,12 @@ git push origin v0.4.0
 
 | Tech | Usage |
 |------|-------|
-| Electron 33+ | Window management, tray, IPC |
-| TypeScript 5.5 | Type safety |
+| Tauri v2 | Window management, tray, IPC, bundling |
+| Rust (2021 edition) | Backend — hook server, approval blocking, session state |
+| Axum + Tokio | Async HTTP server & runtime |
+| TypeScript 5.5 | Frontend type safety |
 | Less | Style preprocessing |
-| Node.js HTTP | Hook server (zero external deps) |
-| electron-builder | Packaging & distribution |
+| @tauri-apps/api | Frontend ↔ backend bridge |
 
 ## License
 

@@ -1,0 +1,790 @@
+// Claude Island — Apple-Inspired Design System (Dark Theme)
+// Based on Apple DESIGN.md: SF Pro, Apple Blue, glass nav, tight tracking
+
+// ── Design Tokens (Apple) ──
+
+@font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+@font-text: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+@font-mono: 'SF Mono', 'Menlo', monospace;
+
+// Apple Colors
+@apple-blue: #0071e3;
+@apple-blue-bright: #2997ff;       // Links on dark bg
+@apple-link: #0066cc;
+@color-white: #ffffff;
+@near-black: #1d1d1f;
+@color-green: #34c759;
+@color-orange: #ff9f0a;
+@color-red: #ff3b30;
+
+// Backgrounds (Apple Dark)
+@bg-compact: #000000;
+@bg-compact-hover: #1a1a1a;
+@bg-expanded: rgba(0, 0, 0, 0.85);
+@bg-surface-dark-1: #1c1c1e;
+@bg-surface-dark-2: #2c2c2e;
+@bg-surface-dark-3: #3a3a3c;
+@bg-white-06: rgba(255, 255, 255, 0.06);
+@bg-white-10: rgba(255, 255, 255, 0.10);
+@bg-white-15: rgba(255, 255, 255, 0.15);
+
+// Text (Apple on dark)
+@text-primary: @color-white;
+@text-secondary: rgba(255, 255, 255, 0.55);
+@text-tertiary: rgba(255, 255, 255, 0.35);
+@text-muted: rgba(255, 255, 255, 0.25);
+
+// Layout
+@compact-height: 36px;
+@expanded-width: 380px;
+
+// Apple ease curve
+@ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1.0);
+@ease-spring: cubic-bezier(0.4, 0, 0.2, 1);
+
+// ── Base Reset ──
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: transparent;
+  font-family: @font-text;
+  color: @text-primary;
+  overflow: hidden;
+  -webkit-app-region: no-drag;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ── Compact (Pill, 药丸) ──
+
+.compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px 0 16px;
+  height: @compact-height;
+  background: @bg-compact;
+  border-radius: 980px;               // Apple pill radius
+  cursor: pointer;
+  transition: all 0.3s @ease-apple;
+  margin: 0 auto;
+  width: fit-content;
+  min-width: 200px;
+  max-width: 420px;
+
+  &:hover {
+    background: @bg-compact-hover;
+    .close-btn { opacity: 0.5; }
+  }
+}
+
+.close-btn {
+  font-size: 14px;
+  line-height: 1;
+  color: @text-tertiary;
+  opacity: 0;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 50%;
+  transition: opacity 0.2s @ease-apple, color 0.2s @ease-apple;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 1 !important;
+    color: @color-white;
+  }
+}
+
+// ── Status Dot ──
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: @bg-surface-dark-3;
+  flex-shrink: 0;
+  transition: background 0.3s @ease-apple;
+
+  &.active {
+    background: @apple-blue-bright;
+    box-shadow: 0 0 6px 2px rgba(41, 151, 255, 0.45);
+    animation: dot-pulse 1.8s ease-in-out infinite;
+  }
+  &.thinking {
+    background: @apple-blue;
+    box-shadow: 0 0 6px 2px rgba(0, 113, 227, 0.5);
+    animation: glow 1.4s ease-in-out infinite;
+  }
+  &.pending {
+    background: @color-orange;
+    animation: pulse 1.5s infinite;
+  }
+  &.done {
+    background: @color-green;
+    animation: done-pop 0.4s ease-out;
+  }
+  &.idle {
+    background: @bg-surface-dark-3;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(0, 113, 227, 0.35); }
+  50% { box-shadow: 0 0 10px 4px rgba(0, 113, 227, 0.7); }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(41, 151, 255, 0.25); transform: scale(1); }
+  50% { box-shadow: 0 0 8px 3px rgba(41, 151, 255, 0.55); transform: scale(1.15); }
+}
+
+@keyframes done-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); box-shadow: 0 0 8px 3px rgba(52, 199, 89, 0.5); }
+  100% { transform: scale(1); }
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.12px;            // Apple negative tracking
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.done-text {
+    color: @color-green;
+    animation: done-fade 15s ease-out forwards;
+  }
+
+  &.shimmer {
+    background: linear-gradient(90deg, #fff 25%, @apple-blue-bright 50%, #fff 75%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 2.5s infinite linear;
+  }
+}
+
+@keyframes done-fade {
+  0% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ── Expanded Panel (Glass) ──
+
+.expanded {
+  background: @bg-expanded;
+  backdrop-filter: saturate(180%) blur(20px);   // Apple glass nav effect
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: 16px;
+  padding: 16px;
+  width: @expanded-width;
+  max-height: 360px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 3px 30px rgba(0, 0, 0, 0.35);   // Apple soft shadow
+  margin: 0 auto;
+  animation: expandIn 0.35s @ease-apple;
+}
+
+@keyframes expandIn {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.hidden { display: none !important; }
+
+// ── Header ──
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  letter-spacing: -0.12px;
+
+  .title {
+    font-family: @font-display;
+    font-weight: 600;
+  }
+
+  .cwd {
+    color: @text-secondary;
+    flex: 1;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .elapsed {
+    color: @text-tertiary;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  color: @text-tertiary;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 50%;
+  transition: all 0.2s @ease-apple;
+
+  &:hover {
+    background: @bg-white-10;
+    color: @color-white;
+  }
+}
+
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 10px 0;
+}
+
+// ── Approval Card ──
+
+@approval-bg: rgba(255, 159, 10, 0.08);
+@approval-border: rgba(255, 159, 10, 0.2);
+
+.approval-card {
+  background: @approval-bg;
+  border: 1px solid @approval-border;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  animation: slideIn 0.25s @ease-apple;
+
+  .label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-family: @font-display;
+    font-weight: 600;
+    color: @color-orange;
+    margin-bottom: 8px;
+    letter-spacing: -0.12px;
+  }
+
+  .tool-desc {
+    font-size: 11px;
+    font-family: @font-mono;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+    margin-bottom: 10px;
+    word-break: break-all;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// ── Buttons (Apple Style) ──
+
+.btn {
+  padding: 7px 20px;
+  border: none;
+  border-radius: 980px;                // Apple pill button
+  font-size: 12px;
+  font-family: @font-text;
+  font-weight: 500;
+  letter-spacing: -0.12px;
+  cursor: pointer;
+  transition: all 0.2s @ease-apple;
+}
+
+.btn-deny {
+  background: rgba(255, 59, 48, 0.15);
+  color: @color-red;
+  &:hover { background: rgba(255, 59, 48, 0.3); }
+}
+
+.btn-allow {
+  background: rgba(52, 199, 89, 0.15);
+  color: @color-green;
+  flex: 1;
+  &:hover { background: rgba(52, 199, 89, 0.3); }
+}
+
+.btn-allow-always {
+  background: rgba(0, 113, 227, 0.15);
+  color: @apple-blue-bright;
+  &:hover { background: rgba(0, 113, 227, 0.3); }
+}
+
+// ── Section Title ──
+
+.section-title {
+  font-size: 11px;
+  font-family: @font-text;
+  font-weight: 600;
+  color: @text-tertiary;
+  margin: 10px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// ── Task List ──
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  letter-spacing: -0.12px;
+}
+
+.task-icon {
+  font-size: 10px;
+  &.completed { color: @color-green; }
+  &.in-progress { color: @apple-blue-bright; }
+  &.pending { color: @text-muted; }
+}
+
+// ── Tool History ──
+
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+  color: @text-secondary;
+
+  .name {
+    font-family: @font-mono;
+    font-weight: 500;
+    width: 50px;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .desc {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .duration {
+    font-variant-numeric: tabular-nums;
+    color: @text-muted;
+  }
+}
+
+// ── AskUserQuestion Card ──
+
+@question-bg: rgba(0, 113, 227, 0.08);
+@question-border: rgba(0, 113, 227, 0.2);
+
+.question-card {
+  background: @question-bg;
+  border: 1px solid @question-border;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  animation: slideIn 0.25s @ease-apple;
+
+  .question-header {
+    font-size: 11px;
+    font-family: @font-display;
+    font-weight: 600;
+    color: @apple-blue-bright;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .question-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: @text-primary;
+    margin-bottom: 10px;
+    line-height: 1.47;                 // Apple body line-height
+    letter-spacing: -0.12px;
+  }
+
+  .options-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .option-chip {
+    padding: 5px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 980px;              // Apple pill
+    background: @bg-white-06;
+    color: @text-primary;
+    font-size: 12px;
+    font-family: @font-text;
+    font-weight: 500;
+    letter-spacing: -0.12px;
+    cursor: pointer;
+    transition: all 0.2s @ease-apple;
+
+    &:hover {
+      background: @bg-white-15;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    &.selected {
+      background: rgba(0, 113, 227, 0.25);
+      border-color: @apple-blue;
+      color: @color-white;
+    }
+  }
+
+  .other-row {
+    margin-bottom: 10px;
+  }
+
+  .other-input {
+    width: 100%;
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: @text-primary;
+    font-size: 12px;
+    font-family: @font-text;
+    letter-spacing: -0.12px;
+    outline: none;
+    transition: all 0.2s @ease-apple;
+
+    &::placeholder { color: @text-muted; }
+    &:focus {
+      border-color: @apple-blue;
+      background: rgba(0, 113, 227, 0.06);
+      box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
+    }
+  }
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 8px 20px;
+  background: @apple-blue;
+  color: @color-white;
+  border: none;
+  border-radius: 980px;               // Apple pill
+  font-size: 12px;
+  font-family: @font-text;
+  font-weight: 500;
+  letter-spacing: -0.12px;
+  cursor: pointer;
+  transition: all 0.2s @ease-apple;
+
+  &:hover {
+    background: lighten(@apple-blue, 8%);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// ── Panel Header ──
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+
+  .panel-title {
+    font-size: 13px;
+    font-family: @font-display;
+    font-weight: 600;
+    color: @text-primary;
+    letter-spacing: -0.12px;
+    flex: 1;
+  }
+}
+
+.auto-approve-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  margin-right: 8px;
+
+  input[type="checkbox"] {
+    display: none;
+  }
+
+  .toggle-track {
+    width: 32px;
+    height: 18px;
+    background: @bg-surface-dark-3;
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.25s @ease-apple;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: @color-white;
+    border-radius: 50%;
+    transition: transform 0.25s @ease-apple;
+  }
+
+  input:checked ~ .toggle-track {
+    background: @color-green;
+
+    .toggle-thumb {
+      transform: translateX(14px);
+    }
+  }
+
+  .toggle-label {
+    font-size: 11px;
+    font-family: @font-text;
+    color: @text-secondary;
+    letter-spacing: -0.1px;
+  }
+}
+
+.terminal-btn {
+  background: @bg-white-06;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: @text-secondary;
+  font-size: 11px;
+  font-family: @font-text;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s @ease-apple;
+
+  &:hover {
+    background: @bg-white-15;
+    color: @color-white;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+// ── Session List ──
+
+.session-list {
+  margin-bottom: 8px;
+  flex-shrink: 0;
+
+  &.has-sessions {
+    background: @bg-white-06;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 10px;
+  }
+
+  .session-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    letter-spacing: -0.12px;
+    cursor: pointer;
+    transition: background 0.2s @ease-apple;
+
+    &:hover { background: @bg-white-06; }
+    &.active {
+      background: @bg-white-10;
+      .session-cwd { color: @text-primary; }
+    }
+
+    .session-cwd {
+      flex: 1;
+      color: @text-secondary;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .session-tools {
+      color: @text-muted;
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+    }
+
+    .dot-idle { background: @bg-surface-dark-3; }
+  }
+}
+
+// ── Chat History ──
+
+.chat-history {
+  margin-top: 8px;
+  flex-shrink: 0;
+  max-height: 120px;
+  overflow-y: auto;
+  background: @bg-white-06;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 8px 10px;
+
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
+
+  &.hidden {
+    display: none;
+  }
+
+  .chat-line {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 4px 0;
+    font-size: 12px;
+    line-height: 1.45;
+    letter-spacing: -0.12px;
+
+    .chat-role {
+      flex-shrink: 0;
+      width: 22px;
+      color: @text-tertiary;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .chat-content {
+      flex: 1;
+      min-width: 0;
+      color: @text-secondary;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    &.chat-user .chat-role {
+      color: @apple-blue-bright;
+    }
+
+    &.chat-assistant .chat-role {
+      color: @color-green;
+    }
+  }
+
+  .chat-empty {
+    font-size: 12px;
+    color: @text-muted;
+    letter-spacing: -0.12px;
+  }
+}
+
+// ── Log List ──
+
+.log-list {
+  margin-top: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+
+  // Thin scrollbar (Apple-like)
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
+
+  .log-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 12px;
+    color: @text-secondary;
+    line-height: 1.47;                 // Apple body line-height
+    letter-spacing: -0.12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    b {
+      color: @color-white;
+      font-weight: 600;
+    }
+
+    code {
+      font-family: @font-mono;
+      font-size: 11px;
+      color: @text-secondary;
+      background: none;
+      padding: 0;
+    }
+
+    &.running b { color: @apple-blue-bright; }
+    &.thinking b { color: @apple-blue; }
+    &.complete b { color: @color-green; }
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.dot-done { background: @color-green; }
+    &.dot-running { background: @apple-blue-bright; animation: pulse 1.2s infinite; }
+    &.dot-thinking { background: @apple-blue; animation: glow 1.4s ease-in-out infinite; }
+    &.dot-complete { background: @color-green; }
+  }
+
+  .log-thinking-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 2px;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 12px;
+    color: @apple-blue-bright;
+    font-weight: 500;
+    letter-spacing: -0.12px;
+  }
+}
