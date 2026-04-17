@@ -63,17 +63,40 @@ jobs:
           npm pkg set version="$VERSION"
           cd apps/cc-island
           npm pkg set version="$VERSION"
+          cd src-tauri
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" tauri.conf.json
 
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          cd apps/cc-island
+          pnpm tauri build ${{ matrix.args }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Claude Island ${{ github.ref_name }}'
-          releaseBody: 'See the assets to download and install this version.'
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
-          tauriScript: pnpm --filter @ccisland/desktop exec tauri
-          configPath: apps/cc-island/src-tauri/tauri.conf.json
+          name: ${{ matrix.platform }}-${{ matrix.rust_target }}
+          path: |
+            apps/cc-island/src-tauri/target/${{ matrix.rust_target }}/release/bundle/**/*
+            apps/cc-island/src-tauri/target/release/bundle/**/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          name: 'CCIsland ${{ github.ref_name }}'
+          body: 'See the assets to download and install this version.'
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.app.tar.gz
+            artifacts/**/*.exe
+            artifacts/**/*-setup.exe
