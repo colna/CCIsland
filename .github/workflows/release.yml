@@ -38,7 +38,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -48,18 +48,17 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: './apps/cc-island/src-tauri -> target'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build renderer
-        run: pnpm build:renderer
 
       - name: Sync version from tag
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          npm pkg set version="$VERSION"
+          cd apps/cc-island
           npm pkg set version="$VERSION"
 
       - name: Build Tauri app
@@ -73,3 +72,4 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          projectPath: apps/cc-island
