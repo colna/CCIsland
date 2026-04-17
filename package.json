@@ -10,7 +10,8 @@
     "tauri:dev": "pnpm --filter @ccisland/desktop tauri:dev",
     "tauri:build": "pnpm --filter @ccisland/desktop tauri:build",
     "site:dev": "pnpm --filter @ccisland/site dev",
-    "site:build": "pnpm --filter @ccisland/site build"
+    "site:build": "pnpm --filter @ccisland/site build",
+    "release": "bash scripts/release.sh"
   },
   "devDependencies": {
     "turbo": "^2"
