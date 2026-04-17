@@ -53,6 +53,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build frontend
+        run: pnpm --filter @ccisland/desktop build:renderer
+
       - name: Sync version from tag
         shell: bash
         run: |
@@ -72,5 +75,5 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
-          projectPath: apps/cc-island
-          tauriScript: pnpm tauri
+          tauriScript: pnpm --filter @ccisland/desktop exec tauri
+          configPath: apps/cc-island/src-tauri/tauri.conf.json
