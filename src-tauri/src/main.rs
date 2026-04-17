@@ -6,7 +6,7 @@ mod shared_types;
 mod tray;
 mod window_state;
 
-use std::{fs, process::Command, sync::{atomic::{AtomicU16, Ordering}, Arc}, time::Duration};
+use std::{fs, process::Command, sync::{atomic::{AtomicBool, AtomicU16, Ordering}, Arc}, time::Duration};
 
 use approval_manager::ApprovalManager;
 use hook_router::{extract_questions, HookRouter};
@@ -22,6 +22,7 @@ pub struct SharedState {
   pub hook_router: HookRouter,
   pub window_controller: Arc<WindowController>,
   pub server_port: AtomicU16,
+  pub auto_approve: AtomicBool,
 }
 
 impl Default for SharedState {
@@ -31,6 +32,7 @@ impl Default for SharedState {
       hook_router: HookRouter::default(),
       window_controller: Arc::new(WindowController::default()),
       server_port: AtomicU16::new(0),
+      auto_approve: AtomicBool::new(false),
     }
   }
 }
@@ -67,6 +69,11 @@ struct SessionArgs {
 struct ChatHistoryArgs {
   #[serde(rename = "sessionId")]
   session_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AutoApproveArgs {
+  enabled: bool,
 }
 
 #[tauri::command]
@@ -220,6 +227,26 @@ async fn get_chat_history(
   tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, 30))
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn set_auto_approve(
+  app: AppHandle,
+  state: State<'_, Arc<SharedState>>,
+  args: AutoApproveArgs,
+) -> Result<bool, String> {
+  state.auto_approve.store(args.enabled, Ordering::Relaxed);
+  app.emit("auto-approve-changed", json!({ "enabled": args.enabled }))
+    .map_err(|e| e.to_string())?;
+  eprintln!("[CCIsland] auto_approve 已设置为 {}", args.enabled);
+  Ok(args.enabled)
+}
+
+#[tauri::command]
+async fn get_auto_approve(
+  state: State<'_, Arc<SharedState>>,
+) -> Result<bool, String> {
+  Ok(state.auto_approve.load(Ordering::Relaxed))
 }
 
 fn add_allowed_tool(tool_name: &str) -> Result<bool, String> {
@@ -552,6 +579,8 @@ fn main() {
       switch_session,
       jump_to_terminal,
       get_chat_history,
+      set_auto_approve,
+      get_auto_approve,
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")

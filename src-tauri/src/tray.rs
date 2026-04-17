@@ -4,7 +4,7 @@ use tauri::{
     image::Image,
     menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle,
+    AppHandle, Emitter,
 };
 
 use crate::{shared_types::{PanelState, SessionSnapshot}, SharedState};
@@ -69,6 +69,9 @@ pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), Strin
     let show_island = MenuItemBuilder::with_id("show_island", "Show Island")
         .build(app)
         .map_err(|e| e.to_string())?;
+    let auto_approve = MenuItemBuilder::with_id("auto_approve", "Auto Approve")
+        .build(app)
+        .map_err(|e| e.to_string())?;
     let setup_hooks = MenuItemBuilder::with_id("setup_hooks", setup_label)
         .build(app)
         .map_err(|e| e.to_string())?;
@@ -81,6 +84,7 @@ pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), Strin
 
     let menu = MenuBuilder::new(app)
         .item(&show_island)
+        .item(&auto_approve)
         .item(&PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?)
         .item(&setup_hooks)
         .item(&remove_hooks)
@@ -103,6 +107,15 @@ pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), Strin
                     tauri::async_runtime::spawn(async move {
                         let _ = shared.window_controller.show(&app, PanelState::Compact).await;
                     });
+                }
+                "auto_approve" => {
+                    let prev = shared.auto_approve.load(Ordering::Relaxed);
+                    let next = !prev;
+                    shared.auto_approve.store(next, Ordering::Relaxed);
+                    let label = if next { "Auto Approve \u{2713}" } else { "Auto Approve" };
+                    let _ = auto_approve.set_text(label);
+                    let _ = app.emit("auto-approve-changed", serde_json::json!({ "enabled": next }));
+                    eprintln!("[CCIsland] 托盘: auto_approve 切换为 {}", next);
                 }
                 "setup_hooks" => {
                     let port = {
