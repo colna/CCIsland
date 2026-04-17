@@ -534,6 +534,54 @@ body {
     font-weight: 600;
     color: @text-primary;
     letter-spacing: -0.12px;
+    flex: 1;
+  }
+}
+
+.auto-approve-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  margin-right: 8px;
+
+  input[type="checkbox"] {
+    display: none;
+  }
+
+  .toggle-track {
+    width: 32px;
+    height: 18px;
+    background: @bg-surface-dark-3;
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.25s @ease-apple;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: @color-white;
+    border-radius: 50%;
+    transition: transform 0.25s @ease-apple;
+  }
+
+  input:checked ~ .toggle-track {
+    background: @color-green;
+
+    .toggle-thumb {
+      transform: translateX(14px);
+    }
+  }
+
+  .toggle-label {
+    font-size: 11px;
+    font-family: @font-text;
+    color: @text-secondary;
+    letter-spacing: -0.1px;
   }
 }
 

@@ -8,6 +8,8 @@ type ClaudeBridge = {
   jumpToTerminal: () => Promise<{ success: boolean; app?: string; reason?: string }>;
   getChatHistory: (sessionId?: string) => Promise<any[]>;
   switchSession: (sessionId: string) => Promise<any>;
+  setAutoApprove: (enabled: boolean) => Promise<boolean>;
+  getAutoApprove: () => Promise<boolean>;
   getState: () => Promise<any>;
   togglePanel: (state: 'compact' | 'expanded' | 'hidden') => Promise<void>;
   onStateUpdate: (cb: (data: any) => void) => void;
@@ -17,6 +19,7 @@ type ClaudeBridge = {
   onPanelState: (cb: (data: any) => void) => void;
   onNotification: (cb: (data: any) => void) => void;
   onApprovalDismissed: (cb: (data: any) => void) => void;
+  onAutoApproveChanged: (cb: (data: { enabled: boolean }) => void) => void;
 };
 
 declare global {

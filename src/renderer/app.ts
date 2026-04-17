@@ -30,6 +30,22 @@ let latestState: any = null; // 缓存最新状态用于渲染日志
 let latestChatSessionId: string | null = null;
 let chatHistoryRequestToken = 0;
 
+// ── 自动批准开关 ──
+
+let autoApproveCheckbox = document.getElementById('auto-approve-checkbox') as HTMLInputElement;
+
+autoApproveCheckbox.addEventListener('change', function() {
+  window.claude.setAutoApprove(autoApproveCheckbox.checked);
+});
+
+window.claude.onAutoApproveChanged(function(data: { enabled: boolean }) {
+  autoApproveCheckbox.checked = data.enabled;
+});
+
+window.claude.getAutoApprove().then(function(enabled: boolean) {
+  autoApproveCheckbox.checked = enabled;
+});
+
 // ── 点击事件: 展开/收回/关闭 ──
 
 closeBtn.addEventListener('click', function(e) {

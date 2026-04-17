@@ -41,6 +41,14 @@
       return invoke('switch_session', { args: { sessionId: sessionId } });
     },
 
+    setAutoApprove: function(enabled) {
+      return invoke('set_auto_approve', { args: { enabled: enabled } });
+    },
+
+    getAutoApprove: function() {
+      return invoke('get_auto_approve', {});
+    },
+
     getState: function() {
       return invoke('get_state', {});
     },
@@ -56,5 +64,6 @@
     onPanelState: function(cb) { listen('panel-state', cb); },
     onNotification: function(cb) { listen('notification', cb); },
     onApprovalDismissed: function(cb) { listen('approval-dismissed', cb); },
+    onAutoApproveChanged: function(cb) { listen('auto-approve-changed', cb); },
   };
 })();

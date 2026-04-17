@@ -229,6 +229,16 @@ impl HookRouter {
     let id = event.tool_use_id.clone().unwrap_or_else(unique_id);
     let is_question = event.tool_name.as_deref() == Some("AskUserQuestion");
 
+    // 自动批准：非问答类权限请求直接放行，跳过审批 UI
+    if !is_question && shared.auto_approve.load(std::sync::atomic::Ordering::Relaxed) {
+      eprintln!("[HookRouter] 自动批准已启用，自动放行 tool={:?}", event.tool_name);
+      return Ok(build_permission_response(ApprovalDecision {
+        behavior: "allow".into(),
+        reason: Some("通过 CCIsland 自动批准".into()),
+        updated_input: None,
+      }));
+    }
+
     if is_question {
       let questions = extract_questions(event.tool_input.clone().unwrap_or(Value::Null));
       let request = ApprovalRequestData {
