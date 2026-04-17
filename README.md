@@ -16,7 +16,7 @@ CCIsland is a Dynamic Island for Claude Code on macOS and Windows — displays r
 </p>
 
 <p align="center">
-  <img src="docs/design.png" alt="CCIsland Design" width="360" />
+  <img src="docs/ui-design.png" alt="CCIsland Design" width="360" />
 </p>
 
 ---
