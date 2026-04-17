@@ -25,15 +25,15 @@ export const heroStats = [
 export const valueProps = [
   {
     title: "Real-time progress",
-    description: "Read、Edit、Bash 等执行状态会持续浮现在屏幕顶部。",
+    description: "Read, Edit, Bash and other tool executions surface continuously at the top of your screen.",
   },
   {
     title: "Approvals in place",
-    description: "Allow / Deny / Always 直接在岛上完成，不必来回切回终端。",
+    description: "Allow, Deny, or Always — decide right on the island without switching back to the terminal.",
   },
   {
     title: "Stays out of your way",
-    description: "默认不抢焦点，只有在真正需要你决策时才主动出现。",
+    description: "Never steals focus by default. Only surfaces when it truly needs your decision.",
   },
 ];
 
@@ -42,24 +42,24 @@ export const featureScenes = [
     eyebrow: "Live progress",
     title: "See Claude Code as it works.",
     description:
-      "文件读取、编辑、命令执行和完成状态都在你看得到的位置持续更新。",
-    image: "/screenshots/design.png",
+      "File reads, edits, command executions and completion status update continuously right where you can see them.",
+    mockup: "activity-log" as const,
     dark: true,
   },
   {
     eyebrow: "Approval flow",
     title: "Approve without leaving the flow.",
     description:
-      "当 Claude Code 请求权限时，你可以直接在 CCIsland 中做出 Allow / Deny / Always 决策。",
-    image: "/screenshots/workflow.png",
+      "When Claude Code requests permission, make Allow / Deny / Always decisions directly from CCIsland.",
+    mockup: "approval" as const,
     dark: false,
   },
   {
     eyebrow: "Questions and sessions",
     title: "Questions and sessions, surfaced intelligently.",
     description:
-      "AskUserQuestion 卡片和多会话状态会被及时抬到前台，让你在并行工作时也不会丢失上下文。",
-    image: "/screenshots/icon.png",
+      "AskUserQuestion cards and multi-session status are surfaced just in time, so you never lose context while working in parallel.",
+    mockup: "question" as const,
     dark: true,
   },
 ];
@@ -73,18 +73,18 @@ export const steps = [
 
 export const faqs = [
   {
-    question: "CCIsland 会把我的对话上传到云端吗？",
+    question: "Does CCIsland upload my conversations to the cloud?",
     answer:
-      "不会。CCIsland 通过本地 localhost hook 接收事件，官网本身也不处理你的终端对话内容。",
+      "No. CCIsland receives events via a local localhost hook. Your terminal conversations never leave your machine.",
   },
   {
-    question: "Windows 和 macOS 功能一样吗？",
+    question: "Is the experience the same on Windows and macOS?",
     answer:
-      "核心浮窗体验一致，但某些依赖系统能力的特性，例如终端跳转，更偏向 macOS。",
+      "The core floating island experience is identical. Some OS-level features like terminal focus switching are more refined on macOS.",
   },
   {
-    question: "下载入口在哪里？",
+    question: "Where do I download it?",
     answer:
-      "当前安装包继续通过 GitHub Releases 分发，官网负责说明产品和承接下载转化。",
+      "Builds are distributed through GitHub Releases. Click the download button above or visit the Releases page directly.",
   },
 ];

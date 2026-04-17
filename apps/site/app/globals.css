@@ -475,6 +475,67 @@ img {
   outline: none;
 }
 
+/* ── Reveal animations ── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: translateY(16px) scale(0.97);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-scale.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-scale {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Button micro-interactions ── */
+
+.primary-button:active,
+.secondary-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ── FAQ answer transition ── */
+
+.faq-answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.faq-answer.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.faq-answer-inner {
+  overflow: hidden;
+}
+
 @media (max-width: 640px) {
   .island-expanded {
     width: 100%;

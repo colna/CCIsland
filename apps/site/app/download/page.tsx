@@ -13,7 +13,7 @@ export default function DownloadPage() {
             <p className="eyebrow muted-dark">Download</p>
             <h1 className="section-title">Download CCIsland and get set up in minutes.</h1>
             <p className="section-copy muted-dark">
-              当前安装包继续通过 GitHub Releases 分发。官网负责把平台入口和安装步骤收得更清楚。
+              Builds are distributed via GitHub Releases. Pick your platform below and get started.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
@@ -21,7 +21,7 @@ export default function DownloadPage() {
               <p className="text-sm text-black/48">Recommended</p>
               <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">macOS</h2>
               <p className="body-copy mt-4 text-[rgba(29,29,31,0.72)]">
-                Sonoma 及以上版本支持最佳，可通过一键安装脚本快速安装到 `/Applications`。
+                Best experience on Sonoma and later. Use the one-line install script to set up in `/Applications`.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <a className="primary-button" href={siteConfig.releasesUrl} target="_blank" rel="noreferrer">
@@ -36,7 +36,7 @@ export default function DownloadPage() {
               <p className="text-sm text-black/48">Also available</p>
               <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">Windows</h2>
               <p className="body-copy mt-4 text-[rgba(29,29,31,0.72)]">
-                Windows 当前以基础运行兼容为主，安装包依旧通过 GitHub Releases 提供下载。
+                Basic runtime support is available. Download the installer from GitHub Releases.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <a className="primary-button" href={siteConfig.releasesUrl} target="_blank" rel="noreferrer">
@@ -44,7 +44,7 @@ export default function DownloadPage() {
                 </a>
               </div>
               <p className="body-copy mt-6 text-[rgba(29,29,31,0.72)]">
-                部分依赖系统能力的特性，例如终端跳转，更偏向 macOS。
+                Some OS-level features like terminal focus switching are more refined on macOS.
               </p>
             </section>
           </div>
