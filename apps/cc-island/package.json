@@ -1,0 +1,28 @@
+{
+  "name": "@ccisland/desktop",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "less": "lessc src/renderer/styles.less dist/renderer/styles.css",
+    "prepare:renderer": "node -e \"const fs=require('node:fs');fs.mkdirSync('dist/renderer',{recursive:true});for(const f of ['index.html']) fs.copyFileSync('src/renderer/'+f,'dist/renderer/'+f);\"",
+    "build:ts": "tsc",
+    "build:assets": "pnpm less && pnpm prepare:renderer",
+    "build:renderer": "pnpm build:ts && pnpm build:assets",
+    "build": "pnpm build:renderer",
+    "tauri:dev": "pnpm build:renderer && tauri dev",
+    "tauri:build": "pnpm build:renderer && tauri build",
+    "typecheck": "tsc --noEmit",
+    "install-hooks": "ts-node scripts/install-hooks.ts",
+    "remove-hooks": "ts-node scripts/remove-hooks.ts"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "@ccisland/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "less": "^4.6.4",
+    "ts-node": "^10.9.0",
+    "typescript": "5.5"
+  }
+}

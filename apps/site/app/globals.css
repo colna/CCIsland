@@ -1,0 +1,482 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --background-alt: #f5f5f7;
+  --foreground: #ffffff;
+  --foreground-dark: #1d1d1f;
+  --muted: rgba(255, 255, 255, 0.72);
+  --muted-dark: rgba(29, 29, 31, 0.72);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-dark: rgba(29, 29, 31, 0.08);
+  --apple-blue: #0071e3;
+  --apple-blue-bright: #2997ff;
+  --shadow-soft: 0 3px 30px rgba(0, 0, 0, 0.22);
+  --glass: saturate(180%) blur(20px);
+  --radius-pill: 999px;
+  --radius-card: 28px;
+  --content-width: 1120px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.site-shell {
+  min-height: 100vh;
+  background: var(--background);
+}
+
+.section {
+  width: 100%;
+}
+
+.section-dark {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.section-light {
+  background: var(--background-alt);
+  color: var(--foreground-dark);
+}
+
+.container {
+  width: min(calc(100% - 40px), var(--content-width));
+  margin: 0 auto;
+}
+
+.glass-nav {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
+}
+
+.eyebrow {
+  font-size: 12px;
+  line-height: 1.33;
+  letter-spacing: -0.12px;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  font-size: clamp(42px, 8vw, 72px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
+.section-title {
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.section-copy {
+  font-size: 19px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.body-copy {
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.muted-dark {
+  color: var(--muted-dark);
+}
+
+.muted-light {
+  color: var(--muted);
+}
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--radius-pill);
+  padding: 0 20px;
+  font-size: 17px;
+  line-height: 1;
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.primary-button:hover,
+.secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button {
+  background: var(--apple-blue);
+  color: #ffffff;
+}
+
+.secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  color: #ffffff;
+}
+
+.secondary-button.light {
+  border-color: rgba(29, 29, 31, 0.18);
+  color: var(--foreground-dark);
+}
+
+.card {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.hero-surface {
+  border-radius: 36px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 80px rgba(0, 0, 0, 0.42);
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.feature-scene {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
+  align-items: center;
+}
+
+.step-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.footer-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .grid-cards,
+  .feature-scene,
+  .step-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-grid {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── Island Demo ── */
+
+.island-demo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 340px;
+  padding-top: 20px;
+}
+
+.island-frame {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.island-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.island-hidden {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* Compact pill */
+.island-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(0, 0, 0, 0.88);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 3px 20px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+.island-pill-text {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: -0.12px;
+}
+
+.island-pill-close {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: 4px;
+}
+
+/* Dot */
+.island-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.island-dot-pulse {
+  animation: islandPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes islandPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+/* Expanded panel */
+.island-expanded {
+  width: 380px;
+  background: rgba(0, 0, 0, 0.88);
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 3px 30px rgba(0, 0, 0, 0.5);
+}
+
+.island-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.island-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.island-kbd {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Sessions */
+.island-sessions {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 10px;
+}
+
+.island-session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.island-session.active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.island-session-cwd {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.island-session.active .island-session-cwd {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.island-session-count {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Log lines */
+.island-log {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.island-log-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.52);
+  padding: 2px 0;
+}
+
+.island-log-bold {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* Approval card */
+.island-approval {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.island-approval-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #FF9500;
+  margin-bottom: 4px;
+}
+
+.island-approval-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: "SF Mono", ui-monospace, monospace;
+  margin-bottom: 10px;
+}
+
+.island-approval-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Buttons */
+.island-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: default;
+}
+
+.island-btn-deny {
+  background: rgba(255, 59, 48, 0.2);
+  color: #FF453A;
+}
+
+.island-btn-allow {
+  background: rgba(52, 199, 89, 0.2);
+  color: #32D74B;
+  flex: 1;
+}
+
+.island-btn-always {
+  background: rgba(0, 122, 255, 0.2);
+  color: #0A84FF;
+}
+
+.island-btn-submit {
+  width: 100%;
+  padding: 8px;
+  background: #0A84FF;
+  color: #fff;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+/* Question card */
+.island-question {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.island-question-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FF9500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.island-question-text {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.88);
+  margin-bottom: 10px;
+}
+
+.island-question-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.island-chip {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.island-chip-selected {
+  background: rgba(0, 122, 255, 0.2);
+  color: #0A84FF;
+  border-color: rgba(0, 122, 255, 0.3);
+}
+
+.island-question-input {
+  width: 100%;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .island-expanded {
+    width: 100%;
+  }
+}

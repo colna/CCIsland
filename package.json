@@ -1,26 +1,18 @@
 {
-  "name": "cc-island",
+  "name": "ccisland",
   "version": "0.3.0",
-  "description": "macOS Dynamic Island for Claude Code — Tauri v2",
   "private": true,
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
-    "less": "lessc src/renderer/styles.less dist/renderer/styles.css",
-    "prepare:renderer": "node -e \"const fs=require('node:fs');fs.mkdirSync('dist/renderer',{recursive:true});for(const f of ['index.html']) fs.copyFileSync('src/renderer/'+f,'dist/renderer/'+f); if (fs.existsSync('dist/renderer/app.js')) fs.copyFileSync('dist/renderer/app.js','dist/renderer/app.js'); if (fs.existsSync('dist/renderer/tauri-bridge.js')) fs.copyFileSync('dist/renderer/tauri-bridge.js','dist/renderer/tauri-bridge.js');\"",
-    "build:ts": "tsc",
-    "build:assets": "pnpm less && pnpm prepare:renderer",
-    "build:renderer": "pnpm build:ts && pnpm build:assets",
-    "tauri:dev": "pnpm build:renderer && tauri dev",
-    "tauri:build": "pnpm build:renderer && tauri build",
-    "install-hooks": "ts-node scripts/install-hooks.ts",
-    "remove-hooks": "ts-node scripts/remove-hooks.ts"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "typecheck": "turbo typecheck",
+    "tauri:dev": "pnpm --filter @ccisland/desktop tauri:dev",
+    "tauri:build": "pnpm --filter @ccisland/desktop tauri:build",
+    "site:dev": "pnpm --filter @ccisland/site dev",
+    "site:build": "pnpm --filter @ccisland/site build"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
-    "less": "^4.6.4",
-    "ts-node": "^10.9.0",
-    "typescript": "5.5"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2.10.1"
+    "turbo": "^2"
   }
 }

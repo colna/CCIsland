@@ -4,4 +4,7 @@ dist/
 *.dmg
 *.app
 out/
-src-tauri/target/
+**/src-tauri/target/
+.next/
+.vercel/
+.turbo/

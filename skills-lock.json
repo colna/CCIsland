@@ -1,6 +1,10 @@
 {
   "version": 1,
   "skills": {
+    "apple-design": {
+      "source": "VoltAgent/awesome-design-md",
+      "sourceType": "github"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -15,10 +19,6 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
-    },
-    "apple-design": {
-      "source": "VoltAgent/awesome-design-md",
-      "sourceType": "github"
     }
   }
 }
