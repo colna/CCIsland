@@ -8,7 +8,7 @@ export function HeroSection() {
     <section className="section section-dark pt-16 pb-24">
       <div className="container" style={{ display: "flex", flexDirection: "column", gap: 48 }}>
         {/* Top: Title + Download (left) | Demo (right) */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 48, alignItems: "flex-start" }}>
           <div style={{ flex: "1 1 400px", display: "flex", flexDirection: "column", gap: 20 }}>
             <Reveal>
               <p className="eyebrow text-white/64">For Claude Code</p>
