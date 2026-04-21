@@ -25,7 +25,7 @@ export function HeroSection() {
               <DownloadCard />
             </Reveal>
           </div>
-          <Reveal delay={0.35} className="reveal-scale hero-surface" style={{ flex: "1 1 380px", padding: "16px 24px" }}>
+          <Reveal delay={0.35} className="reveal-scale hero-surface" style={{ flex: "0 0 420px", minWidth: 380, padding: "16px 24px" }}>
             <IslandDemo />
           </Reveal>
         </div>
