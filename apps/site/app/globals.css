@@ -206,6 +206,7 @@ img {
   display: flex;
   align-items: flex-start;
   justify-content: center;
+  min-height: 280px;
   padding-top: 20px;
   padding-bottom: 20px;
 }
