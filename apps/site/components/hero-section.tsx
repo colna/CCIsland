@@ -37,17 +37,15 @@ export function HeroSection() {
       </div>
 
       {/* Stats */}
-      <div className="container">
-        <div className="hero-stats">
-          {heroStats.map((item, i) => (
-            <Reveal key={item.label} delay={0.4 + i * 0.1}>
-              <div className="hero-stat-item">
-                <p className="hero-stat-label">{item.label}</p>
-                <p className="hero-stat-value">{item.value}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+      <div className="hero-stats">
+        {heroStats.map((item, i) => (
+          <Reveal key={item.label} delay={0.4 + i * 0.1}>
+            <div className="hero-stat-item">
+              <p className="hero-stat-label">{item.label}</p>
+              <p className="hero-stat-value">{item.value}</p>
+            </div>
+          </Reveal>
+        ))}
       </div>
     </section>
   );

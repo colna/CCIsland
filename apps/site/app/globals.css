@@ -203,7 +203,9 @@ img {
   display: flex;
   justify-content: center;
   gap: clamp(12px, 4vw, 40px);
+  width: 100%;
   margin-top: clamp(24px, 4vw, 48px);
+  padding: 0 clamp(16px, 3vw, 20px);
 }
 
 .hero-stat-item {
