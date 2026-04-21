@@ -537,22 +537,14 @@ img {
   overflow: hidden;
 }
 
-/* ── Download Cards ── */
-
-.download-cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-}
+/* ── Download Card ── */
 
 .download-card {
-  flex: 1 1 320px;
-  max-width: 440px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 28px;
-  border-radius: 16px;
+  gap: 12px;
+  padding: 20px 24px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: border-color 0.2s;
@@ -570,20 +562,11 @@ img {
   font-weight: 600;
 }
 
-.download-label.secondary {
-  color: #888;
-}
-
-.download-title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
 .download-desc {
   font-size: 14px;
   color: #999;
-  line-height: 1.6;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .download-desc code {
@@ -591,12 +574,6 @@ img {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 13px;
-}
-
-.download-note {
-  font-size: 12px;
-  color: #666;
-  line-height: 1.5;
 }
 
 .curl-box {
