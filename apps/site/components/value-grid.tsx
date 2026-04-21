@@ -10,7 +10,7 @@ export function ValueGrid() {
             <p className="eyebrow muted-dark">Built for flow</p>
             <h2 className="section-title">A calmer way to stay on top of Claude Code.</h2>
             <p className="section-copy muted-dark">
-              Three things you'll notice the moment you start using CCIsland.
+              Three things you&apos;ll notice the moment you start using CCIsland.
             </p>
           </div>
         </Reveal>

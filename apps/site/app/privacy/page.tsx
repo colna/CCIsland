@@ -30,7 +30,7 @@ export default function PrivacyPage() {
             <section className="rounded-[32px] border border-black/8 bg-white p-8 shadow-[0_3px_24px_rgba(0,0,0,0.08)]">
               <h2 className="text-[28px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">Open source distribution</h2>
               <p className="body-copy mt-4 text-[rgba(29,29,31,0.72)]">
-                Builds are distributed via GitHub Releases. You can inspect the repository, release history, and source code to verify the product's behavior boundaries.
+                Builds are distributed via GitHub Releases. You can inspect the repository, release history, and source code to verify the product&apos;s behavior boundaries.
               </p>
             </section>
           </div>

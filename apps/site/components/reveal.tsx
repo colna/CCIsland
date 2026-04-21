@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, type JSX, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 type RevealProps = {
   children: ReactNode;
   delay?: number;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
+  as?: string;
 };
 
 export function Reveal({ children, delay = 0, className = "", as: Tag = "div" }: RevealProps) {
@@ -30,14 +30,15 @@ export function Reveal({ children, delay = 0, className = "", as: Tag = "div" }:
     return () => observer.disconnect();
   }, []);
 
+  const Component = Tag as React.ElementType;
+
   return (
-    // @ts-expect-error dynamic tag
-    <Tag
+    <Component
       ref={ref}
       className={`${className.includes("reveal-scale") ? "" : "reveal"} ${className}`.trim()}
       style={delay ? { transitionDelay: `${delay}s` } : undefined}
     >
       {children}
-    </Tag>
+    </Component>
   );
 }

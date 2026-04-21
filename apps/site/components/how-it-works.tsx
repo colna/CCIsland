@@ -10,7 +10,7 @@ export function HowItWorks() {
             <p className="eyebrow muted-dark">Built on hooks</p>
             <h2 className="section-title">Built on Claude Code HTTP Hooks.</h2>
             <p className="section-copy muted-dark">
-              CCIsland is not magic — it's a reliable local bridge: events come in, the island updates, approval results go back synchronously.
+              CCIsland is not magic — it&apos;s a reliable local bridge: events come in, the island updates, approval results go back synchronously.
             </p>
           </div>
         </Reveal>
