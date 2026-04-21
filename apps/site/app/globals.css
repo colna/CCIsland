@@ -543,6 +543,7 @@ img {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-width: 420px;
   padding: 20px 24px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.05);
