@@ -43,7 +43,6 @@ struct SessionInstance {
 
 impl HookRouter {
   pub async fn handle(&self, event: HookEvent, app: &AppHandle, shared: &SharedState) -> Result<HookResponse, String> {
-    let session_id = event.session_id.clone();
     let hook_name = event.hook_event_name.clone();
 
     self.update_session(&event).await;
@@ -58,8 +57,16 @@ impl HookRouter {
           .map_err(|e| e.to_string())?;
         Ok(HookResponse { hook_specific_output: None })
       }
-      "Stop" | "SessionEnd" => {
-        let _ = session_id;
+      "Stop" => {
+        if let Some(message) = &event.last_assistant_message {
+          let msg = message.clone();
+          tokio::spawn(async move {
+            send_feishu_notification(&msg).await;
+          });
+        }
+        Ok(HookResponse { hook_specific_output: None })
+      }
+      "SessionEnd" => {
         Ok(HookResponse { hook_specific_output: None })
       }
       _ => Ok(HookResponse { hook_specific_output: None }),
@@ -574,4 +581,31 @@ fn now_ms() -> u64 {
 
 fn unique_id() -> String {
   format!("id-{}-{}", now_ms(), ID_COUNTER.fetch_add(1, Ordering::Relaxed))
+}
+
+async fn send_feishu_notification(message: &str) {
+  const WEBHOOK_URL: &str = "https://open.feishu.cn/open-apis/bot/v2/hook/d5183170-1de2-4df9-83cd-6e29cccdafae";
+  const MAX_LEN: usize = 800;
+
+  let truncated: String = message.chars().take(MAX_LEN).collect();
+  let text = format!("Claude Code 任务完成✅\n{}", truncated);
+
+  let body = json!({
+    "msg_type": "text",
+    "content": { "text": text }
+  });
+
+  let body_str = body.to_string();
+  let result = tokio::task::spawn_blocking(move || {
+    std::process::Command::new("curl")
+      .args(["-s", "-X", "POST", WEBHOOK_URL, "-H", "Content-Type: application/json", "-d", &body_str, "--max-time", "5"])
+      .output()
+  }).await;
+
+  match result {
+    Ok(Ok(output)) if output.status.success() => eprintln!("[Feishu] notification sent"),
+    Ok(Ok(output)) => eprintln!("[Feishu] curl failed: {}", String::from_utf8_lossy(&output.stderr)),
+    Ok(Err(e)) => eprintln!("[Feishu] failed to spawn curl: {}", e),
+    Err(e) => eprintln!("[Feishu] task failed: {}", e),
+  }
 }
