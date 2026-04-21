@@ -201,17 +201,13 @@ img {
 
 .hero-stats {
   display: flex;
-  gap: clamp(8px, 2vw, 12px);
+  justify-content: space-around;
   margin-top: clamp(24px, 4vw, 48px);
 }
 
 .hero-stat-item {
-  flex: 1;
-  min-width: 0;
-  padding: clamp(10px, 2vw, 14px) clamp(10px, 2vw, 16px);
-  border-radius: clamp(12px, 2vw, 16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  text-align: center;
+  padding: clamp(10px, 2vw, 14px) clamp(12px, 3vw, 20px);
 }
 
 .hero-stat-label {
