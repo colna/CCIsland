@@ -24,6 +24,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -181,8 +182,9 @@ img {
 
 .hero-right {
   flex: 1 1 340px;
-  max-width: 440px;
+  max-width: min(440px, 100%);
   margin: 0 auto;
+  overflow: hidden;
 }
 
 .hero-surface {
