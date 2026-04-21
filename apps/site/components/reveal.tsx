@@ -23,11 +23,22 @@ export function Reveal({ children, delay = 0, className = "", as: Tag = "div" }:
           observer.unobserve(el);
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0, rootMargin: "0px 0px 100px 0px" }
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+
+    // Safety fallback: force visible after 3s in case observer never fires
+    const fallback = setTimeout(() => {
+      if (el && !el.classList.contains("visible")) {
+        el.classList.add("visible");
+      }
+    }, 3000);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallback);
+    };
   }, []);
 
   const Component = Tag as React.ElementType;
