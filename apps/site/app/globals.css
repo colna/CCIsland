@@ -201,28 +201,28 @@ img {
 
 .hero-stats {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: clamp(8px, 2vw, 12px);
   margin-top: clamp(24px, 4vw, 48px);
 }
 
 .hero-stat-item {
-  flex: 1 1 min(120px, 100%);
-  padding: 14px 16px;
-  border-radius: 16px;
+  flex: 1;
+  min-width: 0;
+  padding: clamp(10px, 2vw, 14px) clamp(10px, 2vw, 16px);
+  border-radius: clamp(12px, 2vw, 16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .hero-stat-label {
-  font-size: 13px;
+  font-size: clamp(11px, 1.8vw, 13px);
   color: rgba(255, 255, 255, 0.52);
   letter-spacing: -0.01em;
 }
 
 .hero-stat-value {
-  margin-top: 6px;
-  font-size: 15px;
+  margin-top: clamp(4px, 1vw, 6px);
+  font-size: clamp(13px, 2vw, 15px);
   font-weight: 500;
   letter-spacing: -0.01em;
   color: #fff;
@@ -289,7 +289,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: clamp(240px, 40vw, 320px);
+  height: 320px;
   padding: 20px 0;
 }
 
@@ -499,7 +499,7 @@ img {
   background: #0A84FF;
   color: #fff;
   border-radius: 10px;
-  margin-top: 8px;
+  margin-top: 14px;
 }
 
 /* Question card */
