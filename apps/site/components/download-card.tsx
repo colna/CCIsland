@@ -22,37 +22,47 @@ export function DownloadCard() {
 
   if (platform === "win") {
     return (
-      <div className="download-card">
-        <span className="download-label">Windows</span>
-        <p className="download-desc">
-          Download the installer from GitHub Releases. Some OS-level features are more refined on macOS.
-        </p>
+      <div className="hero-cta-group">
         <a
           className="primary-button"
           href={siteConfig.releasesUrl}
           target="_blank"
           rel="noreferrer"
         >
-          Download installer
+          Download for Windows
+        </a>
+        <a
+          className="secondary-button"
+          href={siteConfig.githubUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View on GitHub &rsaquo;
         </a>
       </div>
     );
   }
 
   return (
-    <div className="download-card">
-      <span className="download-label">macOS</span>
-      <p className="download-desc">
-        Best experience on Sonoma and later. One-line install to <code>/Applications</code>.
-      </p>
-      <a
-        className="primary-button"
-        href={siteConfig.releasesUrl}
-        target="_blank"
-        rel="noreferrer"
-      >
-        Open Releases
-      </a>
+    <div className="hero-cta-group">
+      <div className="hero-cta-row">
+        <a
+          className="primary-button"
+          href={siteConfig.releasesUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Download for Mac
+        </a>
+        <a
+          className="secondary-button"
+          href={siteConfig.githubUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub &rsaquo;
+        </a>
+      </div>
       <div className="curl-box">
         <code>{siteConfig.installCommand}</code>
         <CopyButton text={siteConfig.installCommand} />
