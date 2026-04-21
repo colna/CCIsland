@@ -5,7 +5,7 @@ export function PlatformSection() {
   return (
     <section className="section section-dark py-24 md:py-32">
       <Reveal className="container">
-        <div className="grid gap-10 rounded-[40px] border border-white/10 bg-white/[0.03] px-8 py-10 md:grid-cols-[1.1fr_0.9fr] md:px-12 md:py-14">
+        <div className="grid gap-10 rounded-[24px] sm:rounded-[40px] border border-white/10 bg-white/[0.03] px-5 py-8 sm:px-8 sm:py-10 md:grid-cols-[1.1fr_0.9fr] md:px-12 md:py-14">
           <Reveal delay={0.1}>
             <div className="space-y-5">
               <p className="eyebrow text-white/60">Platform and install</p>

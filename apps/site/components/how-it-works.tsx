@@ -17,7 +17,7 @@ export function HowItWorks() {
         <div className="step-grid">
           {steps.map((step, index) => (
             <Reveal key={step} delay={index * 0.1}>
-              <div className="rounded-[24px] border border-black/8 bg-white px-6 py-6">
+              <div className="rounded-[16px] sm:rounded-[24px] border border-black/8 bg-white px-4 py-5 sm:px-6 sm:py-6">
                 <p className="text-sm text-black/45">0{index + 1}</p>
                 <p className="mt-4 text-lg font-medium leading-[1.35] tracking-[-0.015em] text-[#1d1d1f]">{step}</p>
               </div>

@@ -17,7 +17,7 @@ export function ValueGrid() {
         <div className="grid-cards">
           {valueProps.map((item, i) => (
             <Reveal key={item.title} delay={i * 0.12}>
-              <article className="card rounded-[28px] bg-white px-7 py-8 text-[#1d1d1f]">
+              <article className="card rounded-[20px] sm:rounded-[28px] bg-white px-5 py-6 sm:px-7 sm:py-8 text-[#1d1d1f]">
                 <h3 className="text-[24px] font-medium leading-[1.15] tracking-[-0.02em]">{item.title}</h3>
                 <p className="body-copy mt-4 text-[rgba(29,29,31,0.74)]">{item.description}</p>
               </article>

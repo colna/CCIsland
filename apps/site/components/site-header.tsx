@@ -9,7 +9,7 @@ export function SiteHeader() {
           <Image src="/screenshots/icon.png" alt="CCIsland icon" width={28} height={28} className="rounded-full" />
           <span className="font-medium tracking-[-0.01em]">CCIsland</span>
         </Link>
-        <nav className="flex items-center gap-5 text-sm text-white/78">
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-white/78">
           <a href="#features">Features</a>
           <a href="#how-it-works">How it works</a>
           <Link href="/download">Download</Link>

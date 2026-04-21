@@ -24,7 +24,7 @@ export function FaqSection() {
                 <button
                   type="button"
                   onClick={() => setOpenIndex(open ? -1 : index)}
-                  className="w-full rounded-[28px] border border-black/8 bg-white px-6 py-6 text-left shadow-[0_3px_24px_rgba(0,0,0,0.08)]"
+                  className="w-full rounded-[20px] sm:rounded-[28px] border border-black/8 bg-white px-4 py-4 sm:px-6 sm:py-6 text-left shadow-[0_3px_24px_rgba(0,0,0,0.08)]"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-lg font-medium tracking-[-0.015em] text-[#1d1d1f]">{item.question}</span>
