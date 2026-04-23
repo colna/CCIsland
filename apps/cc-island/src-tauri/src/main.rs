@@ -524,6 +524,9 @@ fn main() {
   let shared_for_exit = shared.clone();
 
   tauri::Builder::default()
+    .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {
+      eprintln!("[CCIsland] Another instance attempted to start — blocked");
+    }))
     .manage(shared.clone())
     .setup(move |app| {
       // Hide main window initially

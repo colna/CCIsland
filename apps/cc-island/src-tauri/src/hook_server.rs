@@ -13,19 +13,12 @@ struct ServerState {
   shared: Arc<SharedState>,
 }
 
-pub async fn spawn_hook_server(app: AppHandle, shared: Arc<SharedState>) -> Result<u16, String> {
-  let mut bound: Option<(TcpListener, u16)> = None;
-  for port in 51515..=51520 {
-    match TcpListener::bind(("127.0.0.1", port)).await {
-      Ok(listener) => {
-        bound = Some((listener, port));
-        break;
-      }
-      Err(_) => continue,
-    }
-  }
+pub const PORT: u16 = 51515;
 
-  let (listener, port) = bound.ok_or_else(|| "failed to bind hook server on 51515-51520".to_string())?;
+pub async fn spawn_hook_server(app: AppHandle, shared: Arc<SharedState>) -> Result<u16, String> {
+  let listener = TcpListener::bind(("127.0.0.1", PORT)).await
+    .map_err(|e| format!("failed to bind hook server on port {}: {}", PORT, e))?;
+  let port = PORT;
   shared.server_port.store(port, Ordering::Relaxed);
 
   let state = ServerState { app: app.clone(), shared };

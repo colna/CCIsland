@@ -27,6 +27,7 @@ let logList = document.getElementById('log-list')!;
 let chatHistory = document.getElementById('chat-history')!;
 let terminalBtn = document.getElementById('terminal-btn');
 let latestState: any = null; // 缓存最新状态用于渲染日志
+let latestSessions: any[] = [];
 let latestChatSessionId: string | null = null;
 let chatHistoryRequestToken = 0;
 
@@ -180,8 +181,9 @@ window.claude.onStateUpdate((state: any) => {
 
 // ── 多会话列表 ──
 
-window.claude.onSessionList((sessions: any[]) => {
+function renderSessionList(sessions: any[]) {
   if (!sessionListContainer) return;
+  latestSessions = sessions || [];
   if (!sessions || sessions.length <= 1) {
     sessionListContainer.innerHTML = '';
     sessionListContainer.className = 'session-list';
@@ -221,16 +223,27 @@ window.claude.onSessionList((sessions: any[]) => {
     toolsSpan.textContent = String(s.toolCount);
     row.appendChild(toolsSpan);
 
-    // 点击切换会话
     (function(sessionId: string) {
       row.addEventListener('click', function(e) {
         e.stopPropagation();
-        window.claude.switchSession(sessionId);
+        window.claude.switchSession(sessionId).then(function(snapshot: any) {
+          if (!snapshot) return;
+          latestState = snapshot;
+          renderLog(snapshot);
+          refreshChatHistory(snapshot.sessionId);
+          renderSessionList(latestSessions);
+        }).catch(function(error: any) {
+          console.error('[app] switchSession failed:', error);
+        });
       });
     })(s.sessionId);
 
     sessionListContainer.appendChild(row);
   }
+}
+
+window.claude.onSessionList((sessions: any[]) => {
+  renderSessionList(sessions);
 });
 
 // ── 审批请求 ──

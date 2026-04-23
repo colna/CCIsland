@@ -76,6 +76,9 @@ impl WindowController {
     let _ = window.set_visible_on_all_workspaces(true);
     eprintln!("[WindowController] show state={} x={} y={} width={} height={}", state.as_str(), x, y, width, height);
     window.show().map_err(|e| e.to_string())?;
+    if state == PanelState::Expanded {
+      let _ = window.set_focus();
+    }
 
     let mut inner = self.inner.lock().await;
     inner.state = state;
