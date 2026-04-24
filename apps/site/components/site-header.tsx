@@ -9,10 +9,10 @@ export function SiteHeader() {
           <Image src="/screenshots/icon.png" alt="CCIsland icon" width={28} height={28} className="rounded-full" />
           <span className="font-medium tracking-[-0.01em]">CCIsland</span>
         </Link>
-        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-white/78">
-          <a href="#features">Features</a>
-          <a href="#how-it-works">How it works</a>
-          <a href="#notifications">Notifications</a>
+        <nav className="flex items-center gap-x-3 sm:gap-x-4 text-xs sm:text-sm text-white/78 whitespace-nowrap">
+          <a href="#features" className="hidden md:inline">Features</a>
+          <a href="#how-it-works" className="hidden md:inline">How it works</a>
+          <a href="#notifications" className="hidden md:inline">Notifications</a>
           <Link href="/download">Download</Link>
           <a href="https://github.com/colna/CCIsland" target="_blank" rel="noreferrer">GitHub</a>
         </nav>
