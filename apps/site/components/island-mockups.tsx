@@ -88,7 +88,7 @@ export function MockupQuestion() {
           <span className="island-chip">Fluent</span>
         </div>
         <input className="island-question-input" placeholder="Or type your answer..." readOnly tabIndex={-1} />
-        <span className="island-btn island-btn-submit">Submit</span>
+        <span className="island-btn island-btn-submit" style={{ display: "inline-block", marginTop: "8px", width: 'auto' }}>Submit</span>
       </div>
     </div>
   );
