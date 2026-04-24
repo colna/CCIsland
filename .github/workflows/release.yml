@@ -84,6 +84,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -108,7 +111,7 @@ jobs:
           fi
           echo "Uploading ${#FILES[@]} assets for ${TAG}"
           gh release create "${TAG}" "${FILES[@]}" \
+            --verify-tag \
             --draft \
             --title "CCIsland ${TAG}" \
-            --notes "See the assets to download and install this version." \
-            --repo "${{ github.repository }}"
+            --notes "See the assets to download and install this version."
