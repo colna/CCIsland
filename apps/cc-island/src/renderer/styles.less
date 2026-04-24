@@ -198,7 +198,7 @@ body {
   border-radius: 16px;
   padding: 16px;
   width: @expanded-width;
-  max-height: 360px;
+  max-height: 520px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -206,6 +206,18 @@ body {
   box-shadow: 0 3px 30px rgba(0, 0, 0, 0.35);   // Apple soft shadow
   margin: 0 auto;
   animation: expandIn 0.35s @ease-apple;
+
+  // 有审批/问题 pending 时,隐藏 chat-history 和 log-list,让位给 approval-card
+  &.has-pending {
+    #chat-history,
+    #log-list,
+    #log-thinking-bar { display: none !important; }
+  }
+}
+
+// approvals 容器不被 flex 压缩,避免遮挡下方区域
+#approvals {
+  flex-shrink: 0;
 }
 
 @keyframes expandIn {
@@ -664,9 +676,9 @@ body {
 
 .chat-history {
   margin-top: 8px;
-  flex-shrink: 0;
-  min-height: 72px;
-  max-height: 132px;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 180px;
   overflow-y: auto;
   background: @bg-white-06;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -730,9 +742,9 @@ body {
 
 .log-list {
   margin-top: 8px;
-  flex: 1 1 auto;
-  min-height: 84px;
-  max-height: 132px;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 180px;
   overflow-y: auto;
 
   // Thin scrollbar (Apple-like)

@@ -196,16 +196,43 @@ if (sessionListContainer) {
     if (!sessionId) return;
     e.stopPropagation();
     e.preventDefault();
-    window.claude.switchSession(sessionId).then(function(snapshot: any) {
-      if (!snapshot) return;
+    // 判定"当前已显示"以实际渲染出的会话为准,而不是 latestState——后者可能被其它会话的
+    // state-update 事件覆盖,导致误命中早期 return,切换看起来"不响应"。
+    if (renderedChatSessionId === sessionId && pendingChatSessionId === null) return;
+
+    // 立即高亮新行,snapshot + messages 在同一次 invoke 返回后一次性渲染
+    highlightActiveSession(sessionId);
+
+    window.claude.switchSession(sessionId).then(function(result: any) {
+      if (!result) return;
+      let snapshot = result.snapshot || result; // 向后兼容旧返回格式
+      let messages = result.messages || null;
       latestState = snapshot;
       renderLog(snapshot);
-      refreshChatHistory(snapshot.sessionId);
+      if (Array.isArray(messages)) {
+        // 与本次 invoke 一同返回的消息:直接渲染,不用再发 getChatHistory
+        chatHistoryRequestToken++; // 作废任何在途的 fetch,避免 stale 响应覆盖
+        pendingChatSessionId = null;
+        renderedChatSessionId = snapshot.sessionId || null;
+        renderChatHistory(messages);
+      } else {
+        refreshChatHistory(snapshot.sessionId, true);
+      }
       renderSessionList(latestSessions);
     }).catch(function(error: any) {
       console.error('[app] switchSession failed:', error);
     });
   });
+}
+
+function highlightActiveSession(sessionId: string) {
+  if (!sessionListContainer) return;
+  let rows = sessionListContainer.querySelectorAll('.session-row');
+  for (let i = 0; i < rows.length; i++) {
+    let row = rows[i] as HTMLElement;
+    let active = row.getAttribute('data-session-id') === sessionId;
+    row.classList.toggle('active', active);
+  }
 }
 
 function phaseDotClass(phase: string): string {
@@ -312,6 +339,7 @@ window.claude.onApprovalRequest((data: any) => {
   if (document.getElementById('approval-' + data.id)) return;
   compactView.classList.add('hidden');
   expandedView.classList.remove('hidden');
+  expandedView.classList.add('has-pending');
   statusDot.className = 'status-dot pending';
 
   let card = document.createElement('div');
@@ -370,6 +398,7 @@ window.claude.onQuestionRequest((data: any) => {
   if (answeredQuestionIds.has(data.id) || document.getElementById('question-' + data.id)) return;
   compactView.classList.add('hidden');
   expandedView.classList.remove('hidden');
+  expandedView.classList.add('has-pending');
   statusDot.className = 'status-dot pending';
 
   let card = document.createElement('div');
@@ -525,8 +554,13 @@ window.claude.onApprovalDismissed((data: any) => {
   let card = document.getElementById('approval-' + data.id) ||
              document.getElementById('question-' + data.id);
   if (card) card.remove();
-  if (!approvalsContainer.children.length && !expandedView.classList.contains('hidden') && latestState) {
-    renderLog(latestState);
+  // 已标记应答,防止 pending list 回放再次重建卡片
+  answeredQuestionIds.add(data.id);
+  if (!approvalsContainer.children.length) {
+    expandedView.classList.remove('has-pending');
+    if (!expandedView.classList.contains('hidden') && latestState) {
+      renderLog(latestState);
+    }
   }
 });
 
@@ -578,14 +612,14 @@ function renderLog(state: any) {
   }
 }
 
-function refreshChatHistory(sessionId?: string | null) {
+function refreshChatHistory(sessionId?: string | null, force: boolean = false) {
   let targetSessionId = sessionId || null;
+  // 切同一个 session 无需刷新,避免触发 DOM 替换造成的视觉闪烁 (force 时跳过此检查)
+  if (!force && targetSessionId === renderedChatSessionId && pendingChatSessionId === null) return;
   let requestToken = ++chatHistoryRequestToken;
   pendingChatSessionId = targetSessionId;
 
-  chatHistory.classList.add('hidden');
-  chatHistory.innerHTML = '';
-
+  // 不立即清空,等新数据到位后一次性替换,避免期间高度塌陷导致"闪"
   window.claude.getChatHistory(targetSessionId || undefined).then(function(messages: any[]) {
     if (requestToken !== chatHistoryRequestToken) return;
     pendingChatSessionId = null;
@@ -602,8 +636,9 @@ function refreshChatHistory(sessionId?: string | null) {
 
 function renderChatHistory(messages: any[]) {
   if (!messages || !messages.length) {
-    chatHistory.classList.add('hidden');
-    chatHistory.innerHTML = '';
+    // 仍保留对话区但显示 empty-state,避免切换后"对话框消失"的错觉
+    chatHistory.classList.remove('hidden');
+    chatHistory.innerHTML = '<div class="chat-empty">No chat history yet</div>';
     return;
   }
 

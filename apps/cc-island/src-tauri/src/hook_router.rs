@@ -47,6 +47,16 @@ impl HookRouter {
 
     self.update_session(&event).await;
     eprintln!("[HookRouter] handle event={} tool={:?} session={}", event.hook_event_name, event.tool_name, event.session_id);
+
+    // 用户可能在终端中直接响应 claude 的权限请求,此时后续的 PreToolUse/PostToolUse/Stop/SessionEnd
+    // 意味着该权限已被外部处理,需要同步清理灵动岛上残留的审批卡片。
+    if matches!(hook_name.as_str(), "PreToolUse" | "PostToolUse" | "Stop" | "SessionEnd") {
+      let ids = shared.approval_manager.resolve_session(&event.session_id, "已在终端中响应").await;
+      for id in ids {
+        let _ = app.emit("approval-dismissed", json!({ "id": id }));
+      }
+    }
+
     self.auto_panel_for_event(&event, app, shared).await?;
     self.emit_state(app, shared).await?;
 
@@ -61,7 +71,7 @@ impl HookRouter {
         if let Some(message) = &event.last_assistant_message {
           let msg = message.clone();
           tokio::spawn(async move {
-            send_feishu_notification(&msg).await;
+            send_im_webhook_notification(&msg).await;
           });
         }
         Ok(HookResponse { hook_specific_output: None })
@@ -583,29 +593,36 @@ fn unique_id() -> String {
   format!("id-{}-{}", now_ms(), ID_COUNTER.fetch_add(1, Ordering::Relaxed))
 }
 
-async fn send_feishu_notification(message: &str) {
-  const WEBHOOK_URL: &str = "https://open.feishu.cn/open-apis/bot/v2/hook/d5183170-1de2-4df9-83cd-6e29cccdafae";
+async fn send_im_webhook_notification(message: &str) {
   const MAX_LEN: usize = 800;
+  const DEFAULT_TEMPLATE: &str = r#"{"msg_type":"text","content":{"text":"Claude Code 任务完成✅\n{message}"}}"#;
+
+  let url = match std::env::var("IM_WEBHOOK_URL") {
+    Ok(v) if !v.trim().is_empty() => v,
+    _ => return,
+  };
+
+  let template = std::env::var("IM_WEBHOOK_PAYLOAD_TEMPLATE")
+    .ok()
+    .filter(|v| !v.trim().is_empty())
+    .unwrap_or_else(|| DEFAULT_TEMPLATE.to_string());
 
   let truncated: String = message.chars().take(MAX_LEN).collect();
-  let text = format!("Claude Code 任务完成✅\n{}", truncated);
+  let escaped = Value::String(truncated).to_string();
+  // 去掉 serde 加的首尾引号,只保留 JSON 转义后的内容,便于替换进模板字符串字段里
+  let escaped = &escaped[1..escaped.len() - 1];
+  let body_str = template.replace("{message}", escaped);
 
-  let body = json!({
-    "msg_type": "text",
-    "content": { "text": text }
-  });
-
-  let body_str = body.to_string();
   let result = tokio::task::spawn_blocking(move || {
     std::process::Command::new("curl")
-      .args(["-s", "-X", "POST", WEBHOOK_URL, "-H", "Content-Type: application/json", "-d", &body_str, "--max-time", "5"])
+      .args(["-s", "-X", "POST", &url, "-H", "Content-Type: application/json", "-d", &body_str, "--max-time", "5"])
       .output()
   }).await;
 
   match result {
-    Ok(Ok(output)) if output.status.success() => eprintln!("[Feishu] notification sent"),
-    Ok(Ok(output)) => eprintln!("[Feishu] curl failed: {}", String::from_utf8_lossy(&output.stderr)),
-    Ok(Err(e)) => eprintln!("[Feishu] failed to spawn curl: {}", e),
-    Err(e) => eprintln!("[Feishu] task failed: {}", e),
+    Ok(Ok(output)) if output.status.success() => eprintln!("[IM] notification sent"),
+    Ok(Ok(output)) => eprintln!("[IM] curl failed: {}", String::from_utf8_lossy(&output.stderr)),
+    Ok(Err(e)) => eprintln!("[IM] failed to spawn curl: {}", e),
+    Err(e) => eprintln!("[IM] task failed: {}", e),
   }
 }

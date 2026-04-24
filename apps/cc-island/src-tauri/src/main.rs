@@ -188,12 +188,26 @@ async fn switch_session(
   state: State<'_, Arc<SharedState>>,
   args: SessionArgs,
 ) -> Result<serde_json::Value, String> {
-  let snapshot = state.hook_router.switch_session(args.session_id).await;
+  let session_id = args.session_id.clone();
+  let snapshot = state.hook_router.switch_session(session_id.clone()).await;
   if let Some(snapshot) = snapshot {
     app.emit("state-update", &snapshot).map_err(|e| e.to_string())?;
     app.emit("session-list", state.hook_router.get_session_list().await)
       .map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(snapshot).map_err(|e| e.to_string())?)
+
+    // 一并返回 chat messages, 避免前端再发 getChatHistory 造成双倍 round-trip
+    let messages = match state.hook_router.get_transcript_path(&session_id).await {
+      Some(transcript_path) => tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, 30))
+        .await
+        .map_err(|e| e.to_string())?
+        .unwrap_or_default(),
+      None => vec![],
+    };
+
+    Ok(json!({
+      "snapshot": snapshot,
+      "messages": messages,
+    }))
   } else {
     Ok(serde_json::Value::Null)
   }
