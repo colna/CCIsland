@@ -80,3 +80,58 @@ echo "✅ $APP_NAME ($TAG) installed successfully!"
 echo ""
 echo "To launch: open '/Applications/$(basename "$APP_PATH")'"
 echo "Or find '$APP_NAME' in Spotlight (⌘ + Space)"
+
+# ── Claude Code integration (skill + hook) ──────────────────────────
+echo ""
+echo "Setting up Claude Code integration..."
+
+RAW_BASE="https://raw.githubusercontent.com/$REPO/$TAG"
+CLAUDE_DIR="$HOME/.claude"
+HOOK_SCRIPT="$CLAUDE_DIR/hooks/im-webhook-notify.py"
+SKILL_FILE="$CLAUDE_DIR/skills/setup-im-hook/SKILL.md"
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+
+mkdir -p "$CLAUDE_DIR/hooks" "$CLAUDE_DIR/skills/setup-im-hook"
+
+# Download hook script and skill
+curl -fsSL "$RAW_BASE/.claude/hooks/im-webhook-notify.py" -o "$HOOK_SCRIPT" 2>/dev/null && \
+  echo "  ✓ Hook script installed" || echo "  ⚠ Hook script download failed (non-critical)"
+curl -fsSL "$RAW_BASE/.claude/skills/setup-im-hook/SKILL.md" -o "$SKILL_FILE" 2>/dev/null && \
+  echo "  ✓ IM notification skill installed" || echo "  ⚠ Skill download failed (non-critical)"
+
+# Merge hook entries into ~/.claude/settings.json (won't overwrite existing config)
+python3 -c "
+import json, os, sys
+
+path = '$SETTINGS_FILE'
+hook_cmd = 'python3 \"$HOME/.claude/hooks/im-webhook-notify.py\"'
+new_entry = {'hooks': [{'type': 'command', 'command': hook_cmd}]}
+
+# Load existing or start fresh
+cfg = {}
+if os.path.isfile(path):
+    with open(path) as f:
+        cfg = json.load(f)
+
+hooks = cfg.setdefault('hooks', {})
+
+for event in ('Notification', 'Stop'):
+    entries = hooks.setdefault(event, [])
+    # Check if our hook command is already registered
+    already = any(
+        h.get('command') == hook_cmd
+        for entry in entries
+        for h in entry.get('hooks', [])
+    )
+    if not already:
+        entries.append(new_entry)
+
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2, ensure_ascii=False)
+    f.write('\n')
+" 2>/dev/null && \
+  echo "  ✓ Claude Code hooks registered" || echo "  ⚠ Hook registration failed (non-critical)"
+
+echo ""
+echo "💡 To set up IM notifications (Feishu/DingTalk/Slack/etc.),"
+echo "   type /setup-im-hook in Claude Code."
