@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::atomic::{AtomicU64, Ordering}, time::{SystemTime, UNIX_EPOCH}};
+use std::{collections::{HashMap, VecDeque}, sync::atomic::{AtomicU64, Ordering}, time::{SystemTime, UNIX_EPOCH}};
 
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter};
@@ -33,7 +33,7 @@ struct SessionInstance {
   transcript_path: Option<String>,
   start_time: Option<u64>,
   current_tool: Option<ToolActivity>,
-  recent_tools: Vec<ToolActivity>,
+  recent_tools: VecDeque<ToolActivity>,
   activity_log: Vec<LogEntry>,
   tasks: Vec<TaskItem>,
   last_event_time: Option<u64>,
@@ -400,9 +400,9 @@ impl SessionInstance {
               tool_name: current.tool_name.clone(),
               description: Some(current.description.clone()),
             });
-            self.recent_tools.push(current.clone());
+            self.recent_tools.push_back(current.clone());
             if self.recent_tools.len() > MAX_RECENT_TOOLS {
-              self.recent_tools.remove(0);
+              self.recent_tools.pop_front();
             }
           }
           self.current_tool = None;
@@ -448,7 +448,7 @@ impl SessionInstance {
       cwd: self.cwd.clone(),
       start_time: self.start_time,
       current_tool: self.current_tool.clone(),
-      recent_tools: self.recent_tools.clone(),
+      recent_tools: self.recent_tools.iter().cloned().collect(),
       activity_log: self.activity_log.clone(),
       tasks: self.tasks.clone(),
       last_message: self.last_message.clone(),

@@ -1,7 +1,7 @@
 /**
  * Renderer 逻辑 — 灵动岛 UI
  *
- * 通过 window.claude (preload 暴露) 与 Main Process 通信
+ * 通过 window.claude (tauri-bridge 暴露) 与 Tauri 后端通信
  * 处理: 面板状态切换, 会话状态更新, 审批请求, AskUserQuestion, 通知
  *
  * 类型声明见 window.d.ts

@@ -360,7 +360,7 @@ fn run_osascript(script: &str) -> bool {
 fn is_running(bundle_id: &str) -> bool {
   Command::new("osascript")
     .arg("-e")
-    .arg(&format!(
+    .arg(format!(
       "tell application \"System Events\" to (name of processes whose bundle identifier is \"{}\") as text",
       bundle_id
     ))
@@ -413,6 +413,7 @@ fn win_activate(process_name: &str) -> bool {
 
 // ── Platform dispatch ──
 
+#[allow(clippy::unnecessary_wraps)]
 fn jump_to_terminal_impl() -> Result<serde_json::Value, String> {
   #[cfg(target_os = "macos")]
   {
@@ -512,8 +513,8 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
   });
 
   // Tray icon phase sync + title sync: every 5s
-  let app_clone = app.clone();
-  let shared_clone = shared.clone();
+  let app_clone = app;
+  let shared_clone = shared;
   tauri::async_runtime::spawn(async move {
     let mut interval = tokio::time::interval(Duration::from_secs(5));
     loop {
@@ -563,7 +564,7 @@ fn main() {
       // Spawn hook server
       let app_handle = app.handle().clone();
       let shared_for_server = shared.clone();
-      let shared_for_timers = shared.clone();
+      let shared_for_timers = shared;
       tauri::async_runtime::spawn(async move {
         match hook_server::spawn_hook_server(app_handle.clone(), shared_for_server.clone()).await {
           Ok(port) => {

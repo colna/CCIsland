@@ -102,8 +102,6 @@ pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), Strin
             let app = app.clone();
             match event.id().as_ref() {
                 "show_island" => {
-                    let app = app.clone();
-                    let shared = shared.clone();
                     tauri::async_runtime::spawn(async move {
                         let _ = shared.window_controller.show(&app, PanelState::Compact).await;
                     });

@@ -16,8 +16,7 @@
     "remove-hooks": "ts-node scripts/remove-hooks.ts"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.10.1",
-    "@ccisland/shared": "workspace:*"
+    "@tauri-apps/api": "^2.10.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",

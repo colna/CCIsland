@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/colna/WORK/CCIsland/.claude/hooks/feishu-notify.py"
+            "command": "python3 .claude/hooks/feishu-notify.py"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/colna/WORK/CCIsland/.claude/hooks/feishu-notify.py"
+            "command": "python3 .claude/hooks/feishu-notify.py"
           }
         ]
       }
