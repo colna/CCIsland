@@ -741,13 +741,12 @@ body {
     color: @text-secondary;
     line-height: 1.47;                 // Apple body line-height
     letter-spacing: -0.12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    min-width: 0;
 
     b {
       color: @color-white;
       font-weight: 600;
+      flex-shrink: 0;
     }
 
     code {
@@ -756,6 +755,11 @@ body {
       color: @text-secondary;
       background: none;
       padding: 0;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     &.running b { color: @apple-blue-bright; }
@@ -774,17 +778,27 @@ body {
     &.dot-thinking { background: @apple-blue; animation: glow 1.4s ease-in-out infinite; }
     &.dot-complete { background: @color-green; }
   }
+}
 
-  .log-thinking-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 0 2px;
-    margin-top: 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 12px;
-    color: @apple-blue-bright;
-    font-weight: 500;
-    letter-spacing: -0.12px;
+.log-thinking-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 0 2px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  color: @apple-blue-bright;
+  font-weight: 500;
+  letter-spacing: -0.12px;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.dot-thinking { background: @apple-blue; animation: glow 1.4s ease-in-out infinite; }
   }
 }

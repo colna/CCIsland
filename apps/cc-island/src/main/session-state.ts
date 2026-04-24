@@ -215,6 +215,7 @@ const PHASE_PRIORITY: Record<string, number> = {
 /** 多会话管理器 */
 export class SessionManager {
   private sessions = new Map<string, SessionInstance>();
+  private focusedSessionId?: string;
 
   /** 获取或创建会话 */
   getOrCreate(sessionId: string): SessionInstance {
@@ -231,9 +232,24 @@ export class SessionManager {
     return this.sessions.get(sessionId);
   }
 
-  /** 获取最高优先级的会话 (用于紧凑态显示) */
+  /** 显式设置焦点会话(用户点击列表切换) */
+  setFocus(sessionId: string): boolean {
+    if (!this.sessions.has(sessionId)) return false;
+    this.focusedSessionId = sessionId;
+    return true;
+  }
+
+  /** 获取焦点会话: 优先返回用户显式选择的,否则按优先级自动挑 */
   getFocusedSession(): SessionInstance | undefined {
     if (this.sessions.size === 0) return undefined;
+
+    // 显式焦点优先
+    if (this.focusedSessionId) {
+      const explicit = this.sessions.get(this.focusedSessionId);
+      if (explicit) return explicit;
+      // 焦点会话已被清理,回退到自动选择
+      this.focusedSessionId = undefined;
+    }
 
     let best: SessionInstance | undefined;
     let bestScore = -1;
@@ -301,6 +317,7 @@ export class SessionManager {
     for (const [id, session] of this.sessions) {
       if (!session.isActive && session.phase === 'done' && (session.lastEventTime || 0) < cutoff) {
         this.sessions.delete(id);
+        if (this.focusedSessionId === id) this.focusedSessionId = undefined;
       }
     }
   }

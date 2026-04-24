@@ -24,6 +24,7 @@ let closeBtn = compactView.querySelector('.close-btn')!;
 let approvalsContainer = document.getElementById('approvals')!;
 let sessionListContainer = document.getElementById('session-list')!;
 let logList = document.getElementById('log-list')!;
+let logThinkingBar = document.getElementById('log-thinking-bar')!;
 let chatHistory = document.getElementById('chat-history')!;
 let terminalBtn = document.getElementById('terminal-btn');
 let latestState: any = null; // 缓存最新状态用于渲染日志
@@ -180,65 +181,121 @@ window.claude.onStateUpdate((state: any) => {
 });
 
 // ── 多会话列表 ──
+// 使用 diff 式更新(复用节点) + 事件委托,避免高频重建导致 click 丢失
+
+if (sessionListContainer) {
+  // 事件委托:click 绑在容器上,即使 row 被替换也不影响
+  // 用 mousedown 而非 click: row 在高频 re-render 时 mousedown 触发更稳
+  sessionListContainer.addEventListener('mousedown', function(e: MouseEvent) {
+    let target = e.target as HTMLElement | null;
+    let row = target ? target.closest('.session-row') as HTMLElement | null : null;
+    if (!row) return;
+    let sessionId = row.getAttribute('data-session-id');
+    if (!sessionId) return;
+    e.stopPropagation();
+    e.preventDefault();
+    window.claude.switchSession(sessionId).then(function(snapshot: any) {
+      if (!snapshot) return;
+      latestState = snapshot;
+      renderLog(snapshot);
+      refreshChatHistory(snapshot.sessionId);
+      renderSessionList(latestSessions);
+    }).catch(function(error: any) {
+      console.error('[app] switchSession failed:', error);
+    });
+  });
+}
+
+function phaseDotClass(phase: string): string {
+  switch (phase) {
+    case 'tool': return 'dot dot-running';
+    case 'thinking': return 'dot dot-thinking';
+    case 'done': return 'dot dot-done';
+    default: return 'dot dot-idle';
+  }
+}
+
+function formatCwd(cwd: string): string {
+  let parts = cwd.split('/');
+  if (parts.length > 3) return '.../' + parts.slice(-2).join('/');
+  return cwd;
+}
 
 function renderSessionList(sessions: any[]) {
   if (!sessionListContainer) return;
   latestSessions = sessions || [];
+
   if (!sessions || sessions.length <= 1) {
-    sessionListContainer.innerHTML = '';
+    if (sessionListContainer.children.length > 0) {
+      sessionListContainer.innerHTML = '';
+    }
     sessionListContainer.className = 'session-list';
     return;
   }
 
   sessionListContainer.className = 'session-list has-sessions';
-  sessionListContainer.innerHTML = '';
+
+  // 建索引:已存在的 row 按 sessionId 映射
+  let existing: Record<string, HTMLElement> = {};
+  for (let i = 0; i < sessionListContainer.children.length; i++) {
+    let child = sessionListContainer.children[i] as HTMLElement;
+    let id = child.getAttribute('data-session-id');
+    if (id) existing[id] = child;
+  }
+
+  let seen: Record<string, boolean> = {};
 
   for (let i = 0; i < sessions.length; i++) {
     let s = sessions[i];
-    let row = document.createElement('div');
-    let activeClass = (latestState && s.sessionId === latestState.sessionId) ? ' active' : '';
-    row.className = 'session-row' + activeClass;
+    seen[s.sessionId] = true;
+    let isActive = (latestState && s.sessionId === latestState.sessionId);
+    let dotClass = phaseDotClass(s.phase);
+    let cwd = formatCwd(s.cwd || 'unknown');
+    let toolCountStr = String(s.toolCount);
 
-    let dot = document.createElement('span');
-    let dotClass = 'dot ';
-    switch (s.phase) {
-      case 'tool': dotClass += 'dot-running'; break;
-      case 'thinking': dotClass += 'dot-thinking'; break;
-      case 'done': dotClass += 'dot-done'; break;
-      default: dotClass += 'dot-idle'; break;
+    let row = existing[s.sessionId];
+    if (row) {
+      // 复用:仅在变化时更新
+      let wantClass = 'session-row' + (isActive ? ' active' : '');
+      if (row.className !== wantClass) row.className = wantClass;
+      let dot = row.children[0] as HTMLElement;
+      if (dot && dot.className !== dotClass) dot.className = dotClass;
+      let cwdSpan = row.children[1] as HTMLElement;
+      if (cwdSpan && cwdSpan.textContent !== cwd) cwdSpan.textContent = cwd;
+      let toolsSpan = row.children[2] as HTMLElement;
+      if (toolsSpan && toolsSpan.textContent !== toolCountStr) toolsSpan.textContent = toolCountStr;
+      // 顺序校正
+      if (sessionListContainer.children[i] !== row) {
+        sessionListContainer.insertBefore(row, sessionListContainer.children[i] || null);
+      }
+    } else {
+      // 新建
+      row = document.createElement('div');
+      row.className = 'session-row' + (isActive ? ' active' : '');
+      row.setAttribute('data-session-id', s.sessionId);
+
+      let dot = document.createElement('span');
+      dot.className = dotClass;
+      row.appendChild(dot);
+
+      let cwdSpan = document.createElement('span');
+      cwdSpan.className = 'session-cwd';
+      cwdSpan.textContent = cwd;
+      row.appendChild(cwdSpan);
+
+      let toolsSpan = document.createElement('span');
+      toolsSpan.className = 'session-tools';
+      toolsSpan.textContent = toolCountStr;
+      row.appendChild(toolsSpan);
+
+      let anchor = sessionListContainer.children[i] || null;
+      sessionListContainer.insertBefore(row, anchor);
     }
-    dot.className = dotClass;
-    row.appendChild(dot);
+  }
 
-    let cwdSpan = document.createElement('span');
-    cwdSpan.className = 'session-cwd';
-    let cwd = s.cwd || 'unknown';
-    let parts = cwd.split('/');
-    if (parts.length > 3) cwd = '.../' + parts.slice(-2).join('/');
-    cwdSpan.textContent = cwd;
-    row.appendChild(cwdSpan);
-
-    let toolsSpan = document.createElement('span');
-    toolsSpan.className = 'session-tools';
-    toolsSpan.textContent = String(s.toolCount);
-    row.appendChild(toolsSpan);
-
-    (function(sessionId: string) {
-      row.addEventListener('click', function(e) {
-        e.stopPropagation();
-        window.claude.switchSession(sessionId).then(function(snapshot: any) {
-          if (!snapshot) return;
-          latestState = snapshot;
-          renderLog(snapshot);
-          refreshChatHistory(snapshot.sessionId);
-          renderSessionList(latestSessions);
-        }).catch(function(error: any) {
-          console.error('[app] switchSession failed:', error);
-        });
-      });
-    })(s.sessionId);
-
-    sessionListContainer.appendChild(row);
+  // 删除不再存在的 row
+  for (let id in existing) {
+    if (!seen[id]) existing[id].remove();
   }
 }
 
@@ -477,6 +534,8 @@ window.claude.onNotification((data: any) => {
 // ── 日志渲染 ──
 
 function renderLog(state: any) {
+  let distanceFromBottom = logList.scrollHeight - logList.scrollTop - logList.clientHeight;
+  let shouldStickToBottom = distanceFromBottom <= 12;
   let html = '';
   let log = state.activityLog || [];
 
@@ -506,16 +565,11 @@ function renderLog(state: any) {
       '</div>';
   }
 
-  // 底部 Thinking 状态条
-  if (state.phase === 'thinking' || state.phase === 'tool') {
-    html += '<div class="log-thinking-bar">' +
-      '<span class="dot dot-thinking"></span>' +
-      '<span>Thinking...</span>' +
-      '</div>';
-  }
-
   logList.innerHTML = html;
-  logList.scrollTop = logList.scrollHeight;
+  logThinkingBar.classList.toggle('hidden', !(state.phase === 'thinking' || state.phase === 'tool'));
+  if (shouldStickToBottom) {
+    logList.scrollTop = logList.scrollHeight;
+  }
 }
 
 function refreshChatHistory(sessionId?: string | null) {
