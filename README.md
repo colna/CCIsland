@@ -122,6 +122,8 @@ Edit `~/.claude/settings.json`:
 
 Push a message to your IM group (Feishu / DingTalk / WeCom / Slack / custom webhook) every time Claude Code finishes a task. CCIsland's own Stop event uses the same channel. All credentials are read from environment variables — **the repo never stores webhook URLs**.
 
+> Step-by-step walkthrough (Chinese): [`docs/setup-im-hook.zh-CN.md`](docs/setup-im-hook.zh-CN.md) — also covers the macOS `launchctl` recipe for the GUI app.
+
 ### One-shot setup
 
 Run this inside a Claude Code session rooted at this repo:

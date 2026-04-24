@@ -122,6 +122,8 @@ pnpm tauri:dev
 
 配置后，Claude Code 完成任务会自动推送消息到飞书 / 钉钉 / 企业微信 / Slack 等 IM 群；CCIsland 自身的 Stop 事件也走同一个通道。所有凭证从环境变量读取，**仓库里不留 webhook URL**。
 
+> 详细手把手教程见 [`docs/setup-im-hook.zh-CN.md`](docs/setup-im-hook.zh-CN.md)（含 macOS GUI app 读取环境变量的 launchctl 方案）。
+
 ### 一键配置
 
 在 Claude Code 会话中对本仓库运行：
