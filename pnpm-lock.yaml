@@ -14,9 +14,6 @@ importers:
 
   apps/cc-island:
     dependencies:
-      '@ccisland/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@tauri-apps/api':
         specifier: ^2.10.1
         version: 2.10.1
@@ -76,12 +73,6 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
-
-  packages/shared:
-    devDependencies:
-      typescript:
-        specifier: '5.5'
-        version: 5.5.4
 
 packages:
 

@@ -197,7 +197,7 @@ async fn switch_session(
 
     // 一并返回 chat messages, 避免前端再发 getChatHistory 造成双倍 round-trip
     let messages = match state.hook_router.get_transcript_path(&session_id).await {
-      Some(transcript_path) => tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, 30))
+      Some(transcript_path) => tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, usize::MAX))
         .await
         .map_err(|e| e.to_string())?
         .unwrap_or_default(),
@@ -238,7 +238,7 @@ async fn get_chat_history(
     return Ok(vec![]);
   };
 
-  tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, 30))
+  tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, usize::MAX))
     .await
     .map_err(|e| e.to_string())?
 }
@@ -324,7 +324,7 @@ fn parse_transcript(transcript_path: &str, limit: usize) -> Result<Vec<serde_jso
 
     messages.push(json!({
       "role": role,
-      "content": content.chars().take(500).collect::<String>(),
+      "content": content,
       "timestamp": entry.get("timestamp").cloned().unwrap_or(Value::Null),
     }));
   }

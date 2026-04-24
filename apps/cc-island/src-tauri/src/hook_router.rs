@@ -367,10 +367,7 @@ impl SessionInstance {
         self.is_active = true;
         self.phase = "thinking".into();
         self.current_tool = None;
-        self.recent_tools.clear();
-        self.activity_log.clear();
         self.last_message = None;
-        self.tool_count = 0;
       }
       "PreToolUse" => {
         self.is_active = true;
