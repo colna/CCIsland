@@ -4,7 +4,7 @@ use serde_json::json;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Size};
 use tokio::sync::Mutex;
 
-use crate::{shared_types::PanelState, tray};
+use crate::{shared_types::{AppError, PanelState}, tray};
 
 struct WindowControlState {
   state: PanelState,
@@ -30,10 +30,10 @@ pub struct WindowController {
 }
 
 impl WindowController {
-  pub async fn show(&self, app: &AppHandle, state: PanelState) -> Result<(), String> {
+  pub async fn show(&self, app: &AppHandle, state: PanelState) -> Result<(), AppError> {
     let window = app
       .get_webview_window("main")
-      .ok_or_else(|| "main window not found".to_string())?;
+      .ok_or_else(|| AppError::Window("main window not found".into()))?;
 
     let (width, height) = match state {
       PanelState::Compact => (440.0, 36.0),
@@ -66,16 +66,12 @@ impl WindowController {
       })
       .unwrap_or((0.0, 32.0));
 
-    window
-      .set_size(Size::Logical(LogicalSize::new(width, height)))
-      .map_err(|e| e.to_string())?;
-    window
-      .set_position(Position::Logical(LogicalPosition::new(x, y)))
-      .map_err(|e| e.to_string())?;
-    window.set_always_on_top(true).map_err(|e| e.to_string())?;
+    window.set_size(Size::Logical(LogicalSize::new(width, height)))?;
+    window.set_position(Position::Logical(LogicalPosition::new(x, y)))?;
+    window.set_always_on_top(true)?;
     let _ = window.set_visible_on_all_workspaces(true);
     eprintln!("[WindowController] show state={} x={} y={} width={} height={}", state.as_str(), x, y, width, height);
-    window.show().map_err(|e| e.to_string())?;
+    window.show()?;
     if state == PanelState::Expanded {
       let _ = window.set_focus();
     }
@@ -87,8 +83,7 @@ impl WindowController {
     inner.hide_timer_version += 1;
     drop(inner);
 
-    app.emit("panel-state", json!({ "state": state.as_str() }))
-      .map_err(|e| e.to_string())?;
+    app.emit("panel-state", json!({ "state": state.as_str() }))?;
 
     // Clear tray title when island is visible (compact or expanded)
     tray::update_tray_title(app, "");
@@ -96,11 +91,11 @@ impl WindowController {
     Ok(())
   }
 
-  pub async fn hide(&self, app: &AppHandle) -> Result<(), String> {
+  pub async fn hide(&self, app: &AppHandle) -> Result<(), AppError> {
     let window = app
       .get_webview_window("main")
-      .ok_or_else(|| "main window not found".to_string())?;
-    window.hide().map_err(|e| e.to_string())?;
+      .ok_or_else(|| AppError::Window("main window not found".into()))?;
+    window.hide()?;
 
     let mut inner = self.inner.lock().await;
     inner.state = PanelState::Hidden;
@@ -108,12 +103,11 @@ impl WindowController {
     inner.hide_timer_version += 1;
     drop(inner);
 
-    app.emit("panel-state", json!({ "state": "hidden" }))
-      .map_err(|e| e.to_string())?;
+    app.emit("panel-state", json!({ "state": "hidden" }))?;
     Ok(())
   }
 
-  pub async fn dismiss(&self, app: &AppHandle) -> Result<(), String> {
+  pub async fn dismiss(&self, app: &AppHandle) -> Result<(), AppError> {
     {
       let mut inner = self.inner.lock().await;
       inner.user_dismissed = true;

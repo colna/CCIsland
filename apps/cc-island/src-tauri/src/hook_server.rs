@@ -5,7 +5,7 @@ use serde_json::json;
 use tauri::{AppHandle, Emitter};
 use tokio::net::TcpListener;
 
-use crate::{shared_types::{HookEvent, HookResponse}, SharedState};
+use crate::{shared_types::{AppError, Behavior, HookEvent, HookResponse}, SharedState};
 
 #[derive(Clone)]
 struct ServerState {
@@ -15,9 +15,9 @@ struct ServerState {
 
 pub const PORT: u16 = 51515;
 
-pub async fn spawn_hook_server(app: AppHandle, shared: Arc<SharedState>) -> Result<u16, String> {
+pub async fn spawn_hook_server(app: AppHandle, shared: Arc<SharedState>) -> Result<u16, AppError> {
   let listener = TcpListener::bind(("127.0.0.1", PORT)).await
-    .map_err(|e| format!("failed to bind hook server on port {}: {}", PORT, e))?;
+    .map_err(AppError::Io)?;
   let port = PORT;
   shared.server_port.store(port, Ordering::Relaxed);
 
@@ -49,8 +49,8 @@ async fn hook(State(state): State<ServerState>, Json(event): Json<HookEvent>) ->
         hook_specific_output: Some(crate::shared_types::HookSpecificOutput {
           hook_event_name: "Error".into(),
           decision: Some(crate::shared_types::PermissionDecision {
-            behavior: "deny".into(),
-            message: Some(error),
+            behavior: Behavior::Deny,
+            message: Some(error.to_string()),
             interrupt: false,
           }),
           updated_input: None,

@@ -2,11 +2,16 @@ use std::{fs, path::PathBuf};
 
 use serde_json::{json, Value};
 
-pub fn settings_path() -> PathBuf {
+use crate::shared_types::AppError;
+
+pub fn settings_path() -> Result<PathBuf, AppError> {
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
-        .unwrap_or_else(|_| "~".into());
-    PathBuf::from(home).join(".claude").join("settings.json")
+        .map_err(|_| AppError::Io(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "HOME/USERPROFILE environment variable not set",
+        )))?;
+    Ok(PathBuf::from(home).join(".claude").join("settings.json"))
 }
 
 const BLOCKING_EVENTS: &[&str] = &["PreToolUse", "PermissionRequest"];
@@ -19,11 +24,11 @@ const NOTIFYING_EVENTS: &[&str] = &[
     "Stop",
 ];
 
-pub fn install_hooks(port: u16) -> Result<(), String> {
-    let path = settings_path();
+pub fn install_hooks(port: u16) -> Result<(), AppError> {
+    let path = settings_path()?;
     let mut settings: Value = if path.exists() {
-        let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&raw).unwrap_or_else(|_| json!({}))
+        let raw = fs::read_to_string(&path)?;
+        serde_json::from_str(&raw)?
     } else {
         json!({})
     };
@@ -60,10 +65,10 @@ pub fn install_hooks(port: u16) -> Result<(), String> {
     }
 
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        fs::create_dir_all(parent)?;
     }
-    let pretty = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    fs::write(&path, pretty).map_err(|e| e.to_string())?;
+    let pretty = serde_json::to_string_pretty(&settings)?;
+    fs::write(&path, pretty)?;
 
     eprintln!("[HookInstaller] Hooks installed to {:?}", path);
     Ok(())
@@ -95,14 +100,14 @@ fn merge_hook_entry(existing: &[Value], url: &str, marker: &str, timeout: u32) -
     others
 }
 
-pub fn remove_hooks(port: u16) -> Result<(), String> {
-    let path = settings_path();
+pub fn remove_hooks(port: u16) -> Result<(), AppError> {
+    let path = settings_path()?;
     if !path.exists() {
         return Ok(());
     }
 
-    let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let mut settings: Value = serde_json::from_str(&raw).unwrap_or_else(|_| json!({}));
+    let raw = fs::read_to_string(&path)?;
+    let mut settings: Value = serde_json::from_str(&raw)?;
     let marker = format!("localhost:{}", port);
 
     if let Some(hooks) = settings.get_mut("hooks").and_then(|v| v.as_object_mut()) {
@@ -133,23 +138,49 @@ pub fn remove_hooks(port: u16) -> Result<(), String> {
             }
         }
         if hooks.is_empty() {
-            settings
-                .as_object_mut()
-                .map(|obj| obj.remove("hooks"));
+            if let Some(obj) = settings.as_object_mut() {
+                obj.remove("hooks");
+            }
         }
     }
 
-    let pretty = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    fs::write(&path, pretty).map_err(|e| e.to_string())?;
+    let pretty = serde_json::to_string_pretty(&settings)?;
+    fs::write(&path, pretty)?;
     eprintln!("[HookInstaller] Hooks removed");
     Ok(())
 }
 
 pub fn is_installed(port: u16) -> bool {
-    let path = settings_path();
+    let Ok(path) = settings_path() else { return false };
     let marker = format!("localhost:{}", port);
     match fs::read_to_string(path) {
         Ok(raw) => raw.contains(&marker),
         Err(_) => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn merge_adds_new_entry() {
+        let result = merge_hook_entry(&[], "http://localhost:51515/hook", "localhost:51515", 120);
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn merge_replaces_existing() {
+        let existing = vec![json!({"hooks": [{"type": "http", "url": "http://localhost:51515/hook", "timeout": 60}]})];
+        let result = merge_hook_entry(&existing, "http://localhost:51515/hook", "localhost:51515", 120);
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn merge_preserves_unrelated() {
+        let existing = vec![json!({"hooks": [{"type": "http", "url": "http://other:9999/hook"}]})];
+        let result = merge_hook_entry(&existing, "http://localhost:51515/hook", "localhost:51515", 120);
+        assert_eq!(result.len(), 2);
     }
 }

@@ -9,17 +9,17 @@ mod window_state;
 use std::{fs, process::Command, sync::{atomic::{AtomicBool, AtomicU16, Ordering}, Arc}, time::Duration};
 
 use approval_manager::ApprovalManager;
-use hook_router::{extract_questions, HookRouter};
+use hook_router::extract_questions;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 use window_state::WindowController;
 
-use crate::shared_types::{ApprovalDecision, PanelState};
+use crate::shared_types::{AppError, ApprovalDecision, Behavior, PanelState, Phase};
 
 pub struct SharedState {
   pub approval_manager: ApprovalManager,
-  pub hook_router: HookRouter,
+  pub hook_router: hook_router::HookRouter,
   pub window_controller: Arc<WindowController>,
   pub server_port: AtomicU16,
   pub auto_approve: AtomicBool,
@@ -29,11 +29,18 @@ impl Default for SharedState {
   fn default() -> Self {
     Self {
       approval_manager: ApprovalManager::default(),
-      hook_router: HookRouter::default(),
+      hook_router: hook_router::HookRouter::default(),
       window_controller: Arc::new(WindowController::default()),
       server_port: AtomicU16::new(0),
       auto_approve: AtomicBool::new(false),
     }
+  }
+}
+
+impl SharedState {
+  pub fn effective_port(&self) -> u16 {
+    let p = self.server_port.load(Ordering::Relaxed);
+    if p == 0 { hook_server::PORT } else { p }
   }
 }
 
@@ -81,14 +88,14 @@ async fn approve_decision(
   app: AppHandle,
   state: State<'_, Arc<SharedState>>,
   args: ApproveDecisionArgs,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, AppError> {
   if args.behavior == "allowAlways" {
     if let Some(tool_name) = args.tool_name.as_deref() {
       let _ = add_allowed_tool(tool_name)?;
     }
   }
 
-  let behavior = if args.behavior == "allowAlways" { "allow".to_string() } else { args.behavior.clone() };
+  let behavior = if args.behavior == "deny" { Behavior::Deny } else { Behavior::Allow };
   let resolved = state.approval_manager.resolve(
     &args.id,
     ApprovalDecision {
@@ -98,8 +105,7 @@ async fn approve_decision(
     },
   ).await;
 
-  app.emit("approval-dismissed", json!({ "id": args.id }))
-    .map_err(|e| e.to_string())?;
+  app.emit("approval-dismissed", json!({ "id": args.id }))?;
 
   if !state.approval_manager.has_pending().await {
     let _ = state.window_controller.show(&app, PanelState::Compact).await;
@@ -113,7 +119,7 @@ async fn answer_question(
   app: AppHandle,
   state: State<'_, Arc<SharedState>>,
   args: AnswerQuestionArgs,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, AppError> {
   let updated_input = json!({
     "questions": args.original_questions,
     "answers": args.answers,
@@ -122,14 +128,13 @@ async fn answer_question(
   let resolved = state.approval_manager.resolve(
     &args.id,
     ApprovalDecision {
-      behavior: "allow".into(),
+      behavior: Behavior::Allow,
       reason: None,
       updated_input: Some(updated_input),
     },
   ).await;
 
-  app.emit("approval-dismissed", json!({ "id": args.id }))
-    .map_err(|e| e.to_string())?;
+  app.emit("approval-dismissed", json!({ "id": args.id }))?;
 
   if !state.approval_manager.has_pending().await {
     let _ = state.window_controller.show(&app, PanelState::Compact).await;
@@ -139,15 +144,13 @@ async fn answer_question(
 }
 
 #[tauri::command]
-async fn get_state(app: AppHandle, state: State<'_, Arc<SharedState>>) -> Result<shared_types::SessionSnapshot, String> {
+async fn get_state(app: AppHandle, state: State<'_, Arc<SharedState>>) -> Result<shared_types::SessionSnapshot, AppError> {
   let snapshot = state.hook_router.get_state().await;
   let pending_requests = state.approval_manager.pending_requests().await;
   let panel_state = state.window_controller.current_state().await;
 
-  app.emit("panel-state", json!({ "state": panel_state.as_str() }))
-    .map_err(|e| e.to_string())?;
-  app.emit("session-list", state.hook_router.get_session_list().await)
-    .map_err(|e| e.to_string())?;
+  app.emit("panel-state", json!({ "state": panel_state.as_str() }))?;
+  app.emit("session-list", state.hook_router.get_session_list().await)?;
 
   for request in pending_requests {
     if request.tool_name == "AskUserQuestion" {
@@ -155,14 +158,13 @@ async fn get_state(app: AppHandle, state: State<'_, Arc<SharedState>>) -> Result
         "question-request",
         shared_types::QuestionRequestData {
           id: request.id.clone(),
-          questions: extract_questions(request.tool_input.clone()),
+          questions: extract_questions(Some(&request.tool_input)),
           session_id: request.session_id.clone(),
           timestamp: request.timestamp,
         },
-      )
-      .map_err(|e| e.to_string())?;
+      )?;
     } else {
-      app.emit("approval-request", request).map_err(|e| e.to_string())?;
+      app.emit("approval-request", request)?;
     }
   }
 
@@ -174,7 +176,7 @@ async fn toggle_panel(
   app: AppHandle,
   state: State<'_, Arc<SharedState>>,
   args: TogglePanelArgs,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
   match args.state {
     PanelState::Hidden => state.window_controller.dismiss(&app).await,
     PanelState::Compact => state.window_controller.show(&app, PanelState::Compact).await,
@@ -187,19 +189,18 @@ async fn switch_session(
   app: AppHandle,
   state: State<'_, Arc<SharedState>>,
   args: SessionArgs,
-) -> Result<serde_json::Value, String> {
-  let session_id = args.session_id.clone();
+) -> Result<serde_json::Value, AppError> {
+  let session_id = args.session_id;
   let snapshot = state.hook_router.switch_session(session_id.clone()).await;
   if let Some(snapshot) = snapshot {
-    app.emit("state-update", &snapshot).map_err(|e| e.to_string())?;
-    app.emit("session-list", state.hook_router.get_session_list().await)
-      .map_err(|e| e.to_string())?;
+    app.emit("state-update", &snapshot)?;
+    app.emit("session-list", state.hook_router.get_session_list().await)?;
 
     // 一并返回 chat messages, 避免前端再发 getChatHistory 造成双倍 round-trip
     let messages = match state.hook_router.get_transcript_path(&session_id).await {
       Some(transcript_path) => tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, usize::MAX))
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| AppError::Window(e.to_string()))?
         .unwrap_or_default(),
       None => vec![],
     };
@@ -214,7 +215,7 @@ async fn switch_session(
 }
 
 #[tauri::command]
-async fn jump_to_terminal() -> Result<serde_json::Value, String> {
+async fn jump_to_terminal() -> Result<serde_json::Value, AppError> {
   jump_to_terminal_impl()
 }
 
@@ -222,11 +223,10 @@ async fn jump_to_terminal() -> Result<serde_json::Value, String> {
 async fn get_chat_history(
   state: State<'_, Arc<SharedState>>,
   args: ChatHistoryArgs,
-) -> Result<Vec<serde_json::Value>, String> {
-  let session_id = if let Some(session_id) = args.session_id {
-    Some(session_id)
-  } else {
-    state.hook_router.get_state().await.session_id
+) -> Result<Vec<serde_json::Value>, AppError> {
+  let session_id = match args.session_id {
+    Some(id) => Some(id),
+    None => state.hook_router.get_state().await.session_id,
   };
 
   let Some(session_id) = session_id else {
@@ -240,7 +240,7 @@ async fn get_chat_history(
 
   tokio::task::spawn_blocking(move || parse_transcript(&transcript_path, usize::MAX))
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| AppError::Window(e.to_string()))?
 }
 
 #[tauri::command]
@@ -248,10 +248,9 @@ async fn set_auto_approve(
   app: AppHandle,
   state: State<'_, Arc<SharedState>>,
   args: AutoApproveArgs,
-) -> Result<bool, String> {
+) -> Result<bool, AppError> {
   state.auto_approve.store(args.enabled, Ordering::Relaxed);
-  app.emit("auto-approve-changed", json!({ "enabled": args.enabled }))
-    .map_err(|e| e.to_string())?;
+  app.emit("auto-approve-changed", json!({ "enabled": args.enabled }))?;
   eprintln!("[CCIsland] auto_approve 已设置为 {}", args.enabled);
   Ok(args.enabled)
 }
@@ -259,12 +258,12 @@ async fn set_auto_approve(
 #[tauri::command]
 async fn get_auto_approve(
   state: State<'_, Arc<SharedState>>,
-) -> Result<bool, String> {
+) -> Result<bool, AppError> {
   Ok(state.auto_approve.load(Ordering::Relaxed))
 }
 
-fn add_allowed_tool(tool_name: &str) -> Result<bool, String> {
-  let path = hook_installer::settings_path();
+fn add_allowed_tool(tool_name: &str) -> Result<bool, AppError> {
+  let path = hook_installer::settings_path()?;
   let content = fs::read_to_string(&path).unwrap_or_else(|_| "{}".into());
   let mut settings: Value = serde_json::from_str(&content).unwrap_or_else(|_| json!({}));
 
@@ -280,7 +279,7 @@ fn add_allowed_tool(tool_name: &str) -> Result<bool, String> {
 
   let allow = settings["permissions"]["allow"]
     .as_array_mut()
-    .ok_or_else(|| "permissions.allow is not an array".to_string())?;
+    .ok_or_else(|| AppError::Window("permissions.allow is not an array".into()))?;
 
   if allow.iter().any(|value| value.as_str() == Some(tool_name)) {
     return Ok(false);
@@ -288,15 +287,14 @@ fn add_allowed_tool(tool_name: &str) -> Result<bool, String> {
 
   allow.push(Value::String(tool_name.to_string()));
   if let Some(parent) = path.parent() {
-    fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    fs::create_dir_all(parent)?;
   }
-  fs::write(&path, serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?)
-    .map_err(|e| e.to_string())?;
+  fs::write(&path, serde_json::to_vec_pretty(&settings)?)?;
   Ok(true)
 }
 
-fn parse_transcript(transcript_path: &str, limit: usize) -> Result<Vec<serde_json::Value>, String> {
-  let raw = fs::read_to_string(transcript_path).map_err(|e| e.to_string())?;
+fn parse_transcript(transcript_path: &str, limit: usize) -> Result<Vec<serde_json::Value>, AppError> {
+  let raw = fs::read_to_string(transcript_path)?;
   let mut messages = Vec::new();
 
   for line in raw.lines().filter(|line| !line.trim().is_empty()) {
@@ -413,8 +411,8 @@ fn win_activate(process_name: &str) -> bool {
 
 // ── Platform dispatch ──
 
-#[allow(clippy::unnecessary_wraps)]
-fn jump_to_terminal_impl() -> Result<serde_json::Value, String> {
+#[expect(clippy::unnecessary_wraps)]
+fn jump_to_terminal_impl() -> Result<serde_json::Value, AppError> {
   #[cfg(target_os = "macos")]
   {
     for (name, bundle_id, script) in TERMINALS_MAC {
@@ -477,7 +475,7 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
         let snapshot = shared_clone.hook_router.get_state().await;
         let _ = app_clone.emit("state-update", &snapshot);
         let _ = app_clone.emit("session-list", shared_clone.hook_router.get_session_list().await);
-        tray::update_tray_icon(&app_clone, "done");
+        tray::update_tray_icon(&app_clone, Phase::Done);
       }
       // Cleanup stale approvals (2 min timeout) — handles disconnected clients
       let stale_ids = shared_clone.approval_manager.cleanup_stale(120_000).await;
@@ -503,7 +501,7 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
     let mut interval = tokio::time::interval(Duration::from_secs(30));
     loop {
       interval.tick().await;
-      let port = shared_clone.server_port.load(Ordering::Relaxed);
+      let port = shared_clone.effective_port();
       if port == 0 { continue; }
       if !hook_installer::is_installed(port) {
         eprintln!("[CCIsland] Hooks missing — re-installing");
@@ -520,7 +518,7 @@ fn spawn_background_timers(app: AppHandle, shared: Arc<SharedState>) {
     loop {
       interval.tick().await;
       let snapshot = shared_clone.hook_router.get_state().await;
-      tray::update_tray_icon(&app_clone, &snapshot.phase);
+      tray::update_tray_icon(&app_clone, snapshot.phase);
 
       // Sync tray title: show status only when island is hidden
       let panel_state = shared_clone.window_controller.current_state().await;
@@ -604,11 +602,41 @@ fn main() {
     .expect("error while building tauri application")
     .run(move |_app, event| {
       if let tauri::RunEvent::Exit = event {
-        let port = shared_for_exit.server_port.load(Ordering::Relaxed);
+        let port = shared_for_exit.effective_port();
         if port > 0 {
           let _ = hook_installer::remove_hooks(port);
           eprintln!("[CCIsland] Hooks removed on exit");
         }
       }
     });
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use serde_json::json;
+
+  #[test]
+  fn extract_text_from_string_content() {
+    let msg = json!({"content": "hello world"});
+    assert_eq!(extract_text_content(&msg), "hello world");
+  }
+
+  #[test]
+  fn extract_text_from_content_blocks() {
+    let msg = json!({
+      "content": [
+        {"type": "text", "text": "line1"},
+        {"type": "image", "source": {}},
+        {"type": "text", "text": "line2"}
+      ]
+    });
+    assert_eq!(extract_text_content(&msg), "line1\nline2");
+  }
+
+  #[test]
+  fn extract_text_empty_on_missing_content() {
+    let msg = json!({"role": "user"});
+    assert_eq!(extract_text_content(&msg), "");
+  }
 }

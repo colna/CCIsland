@@ -98,5 +98,4 @@ jobs:
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.app.tar.gz
-            artifacts/**/*.exe
             artifacts/**/*-setup.exe

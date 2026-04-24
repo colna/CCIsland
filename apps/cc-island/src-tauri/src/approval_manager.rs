@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use tokio::sync::{oneshot, Mutex};
 
-use crate::shared_types::{ApprovalDecision, ApprovalRequestData};
+use crate::shared_types::{now_ms, ApprovalDecision, ApprovalRequestData, Behavior};
 
 struct PendingApproval {
   request: ApprovalRequestData,
@@ -67,7 +67,7 @@ impl ApprovalManager {
     for id in &matching_ids {
       if let Some(item) = pending.remove(id) {
         let _ = item.sender.send(ApprovalDecision {
-          behavior: "allow".into(),
+          behavior: Behavior::Allow,
           reason: Some(reason.to_string()),
           updated_input: None,
         });
@@ -81,10 +81,7 @@ impl ApprovalManager {
   /// Remove pending approvals older than `max_age_ms`. Returns their IDs for UI cleanup.
   pub async fn cleanup_stale(&self, max_age_ms: u64) -> Vec<String> {
     let mut pending = self.pending.lock().await;
-    let now = std::time::SystemTime::now()
-      .duration_since(std::time::UNIX_EPOCH)
-      .map(|d| d.as_millis() as u64)
-      .unwrap_or(0);
+    let now = now_ms();
 
     let stale_ids: Vec<String> = pending
       .iter()
@@ -95,7 +92,7 @@ impl ApprovalManager {
     for id in &stale_ids {
       if let Some(p) = pending.remove(id) {
         let _ = p.sender.send(ApprovalDecision {
-          behavior: "allow".into(),
+          behavior: Behavior::Allow,
           reason: Some("Auto-resolved: connection timeout".into()),
           updated_input: None,
         });

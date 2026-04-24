@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+
+export const metadata: Metadata = {
+  title: "Privacy",
+  description: "CCIsland privacy policy — all data stays local on your machine.",
+};
 
 export default function PrivacyPage() {
   return (

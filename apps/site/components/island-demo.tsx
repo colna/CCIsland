@@ -136,9 +136,9 @@ function ApprovalCard() {
         <div className="island-approval-label">&#x26A0; Bash</div>
         <div className="island-approval-desc">npm run build &amp;&amp; npm test</div>
         <div className="island-approval-actions">
-          <button className="island-btn island-btn-deny">Deny</button>
-          <button className="island-btn island-btn-allow">Allow</button>
-          <button className="island-btn island-btn-always">Always</button>
+          <button className="island-btn island-btn-deny" type="button">Deny</button>
+          <button className="island-btn island-btn-allow" type="button">Allow</button>
+          <button className="island-btn island-btn-always" type="button">Always</button>
         </div>
       </div>
       <div className="island-log">
@@ -163,8 +163,9 @@ function QuestionCard() {
         className="island-question-input"
         placeholder="Or type your answer..."
         readOnly
+        aria-label="Answer input"
       />
-      <button className="island-btn island-btn-submit">Submit</button>
+      <button className="island-btn island-btn-submit" type="button">Submit</button>
     </div>
   );
 }

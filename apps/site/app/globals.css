@@ -18,10 +18,6 @@
   --content-width: 1120px;
 }
 
-* {
-  box-sizing: border-box;
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -658,4 +654,15 @@ img {
 .copy-btn:hover {
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
+}
+
+/* ── Error page icon pulse ── */
+
+.error-icon-pulse {
+  animation: errorIconPulse 2s ease-in-out infinite;
+}
+
+@keyframes errorIconPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.25; }
 }

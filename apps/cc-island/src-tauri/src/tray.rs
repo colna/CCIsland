@@ -7,7 +7,7 @@ use tauri::{
     AppHandle, Emitter,
 };
 
-use crate::{shared_types::{PanelState, SessionSnapshot}, SharedState};
+use crate::{shared_types::{AppError, PanelState, Phase, SessionSnapshot}, SharedState};
 
 const ICON_SIZE: u32 = 32;
 const CIRCLE_RADIUS: f64 = 12.0;
@@ -15,12 +15,12 @@ const AA_BAND: f64 = 1.5;
 
 struct PhaseColor(u8, u8, u8);
 
-fn phase_color(phase: &str) -> PhaseColor {
+fn phase_color(phase: Phase) -> PhaseColor {
     match phase {
-        "tool" | "responding" => PhaseColor(41, 151, 255),   // @apple-blue-bright #2997ff
-        "thinking" => PhaseColor(0, 113, 227),               // @apple-blue #0071e3
-        "done" => PhaseColor(52, 199, 89),                   // @color-green #34c759
-        _ => PhaseColor(58, 58, 60),                         // @bg-surface-dark-3 #3a3a3c
+        Phase::Tool | Phase::Responding => PhaseColor(41, 151, 255),   // @apple-blue-bright #2997ff
+        Phase::Thinking => PhaseColor(0, 113, 227),                   // @apple-blue #0071e3
+        Phase::Done => PhaseColor(52, 199, 89),                       // @color-green #34c759
+        Phase::Idle => PhaseColor(58, 58, 60),                        // @bg-surface-dark-3 #3a3a3c
     }
 }
 
@@ -53,45 +53,36 @@ fn create_circle_icon(r: u8, g: u8, b: u8) -> Vec<u8> {
     rgba
 }
 
-pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), String> {
-    let PhaseColor(r, g, b) = phase_color("idle");
+pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), AppError> {
+    let PhaseColor(r, g, b) = phase_color(Phase::Idle);
     let icon_rgba = create_circle_icon(r, g, b);
     let icon = Image::new_owned(icon_rgba, ICON_SIZE, ICON_SIZE);
 
     // Check initial hook status
-    let port = {
-        let p = shared.server_port.load(Ordering::Relaxed);
-        if p == 0 { 51515 } else { p }
-    };
+    let port = shared.effective_port();
     let hooks_installed = crate::hook_installer::is_installed(port);
     let setup_label = if hooks_installed { "Hooks Installed \u{2713}" } else { "Setup Hooks" };
 
     let show_island = MenuItemBuilder::with_id("show_island", "Show Island")
-        .build(app)
-        .map_err(|e| e.to_string())?;
+        .build(app)?;
     let auto_approve = MenuItemBuilder::with_id("auto_approve", "Auto Approve")
-        .build(app)
-        .map_err(|e| e.to_string())?;
+        .build(app)?;
     let setup_hooks = MenuItemBuilder::with_id("setup_hooks", setup_label)
-        .build(app)
-        .map_err(|e| e.to_string())?;
+        .build(app)?;
     let remove_hooks = MenuItemBuilder::with_id("remove_hooks", "Remove Hooks")
-        .build(app)
-        .map_err(|e| e.to_string())?;
+        .build(app)?;
     let quit = MenuItemBuilder::with_id("quit", "Quit")
-        .build(app)
-        .map_err(|e| e.to_string())?;
+        .build(app)?;
 
     let menu = MenuBuilder::new(app)
         .item(&show_island)
         .item(&auto_approve)
-        .item(&PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?)
+        .item(&PredefinedMenuItem::separator(app)?)
         .item(&setup_hooks)
         .item(&remove_hooks)
-        .item(&PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?)
+        .item(&PredefinedMenuItem::separator(app)?)
         .item(&quit)
-        .build()
-        .map_err(|e| e.to_string())?;
+        .build()?;
 
     let _tray = TrayIconBuilder::with_id("main")
         .icon(icon)
@@ -116,39 +107,29 @@ pub fn setup_tray(app: &AppHandle, shared: Arc<SharedState>) -> Result<(), Strin
                     eprintln!("[CCIsland] 托盘: auto_approve 切换为 {}", next);
                 }
                 "setup_hooks" => {
-                    let port = {
-                        let p = shared.server_port.load(Ordering::Relaxed);
-                        if p == 0 { 51515 } else { p }
-                    };
+                    let port = shared.effective_port();
                     let _ = crate::hook_installer::install_hooks(port);
                     let _ = setup_hooks.set_text("Hooks Installed \u{2713}");
                 }
                 "remove_hooks" => {
-                    let port = {
-                        let p = shared.server_port.load(Ordering::Relaxed);
-                        if p == 0 { 51515 } else { p }
-                    };
+                    let port = shared.effective_port();
                     let _ = crate::hook_installer::remove_hooks(port);
                     let _ = setup_hooks.set_text("Setup Hooks");
                 }
                 "quit" => {
-                    let port = {
-                        let p = shared.server_port.load(Ordering::Relaxed);
-                        if p == 0 { 51515 } else { p }
-                    };
+                    let port = shared.effective_port();
                     let _ = crate::hook_installer::remove_hooks(port);
                     app.exit(0);
                 }
                 _ => {}
             }
         })
-        .build(app)
-        .map_err(|e| e.to_string())?;
+        .build(app)?;
 
     Ok(())
 }
 
-pub fn update_tray_icon(app: &AppHandle, phase: &str) {
+pub fn update_tray_icon(app: &AppHandle, phase: Phase) {
     let PhaseColor(r, g, b) = phase_color(phase);
     let icon_rgba = create_circle_icon(r, g, b);
     let icon = Image::new_owned(icon_rgba, ICON_SIZE, ICON_SIZE);
@@ -156,9 +137,9 @@ pub fn update_tray_icon(app: &AppHandle, phase: &str) {
     if let Some(tray) = app.tray_by_id("main") {
         let _ = tray.set_icon(Some(icon));
         let tooltip = match phase {
-            "thinking" => "CCIsland — Thinking...",
-            "tool" => "CCIsland — Executing...",
-            "done" => "CCIsland — Done",
+            Phase::Thinking => "CCIsland — Thinking...",
+            Phase::Tool => "CCIsland — Executing...",
+            Phase::Done => "CCIsland — Done",
             _ => "CCIsland — Idle",
         };
         let _ = tray.set_tooltip(Some(tooltip));
@@ -178,22 +159,22 @@ fn truncate_title(s: &str) -> String {
 
 /// Compute status text from session snapshot, mirroring the compact-view logic in app.ts.
 pub fn compute_status_text(snapshot: &SessionSnapshot) -> String {
-    match snapshot.phase.as_str() {
-        "tool" => {
+    match snapshot.phase {
+        Phase::Tool => {
             if let Some(ref tool) = snapshot.current_tool {
                 truncate_title(&format!("{}: {}", tool.tool_name, tool.description))
             } else {
                 "Executing...".to_string()
             }
         }
-        "thinking" => {
+        Phase::Thinking => {
             if let Some(last) = snapshot.recent_tools.last() {
                 truncate_title(&format!("{}: {}", last.tool_name, last.description))
             } else {
                 "Thinking...".to_string()
             }
         }
-        "done" => {
+        Phase::Done => {
             let msg = snapshot.last_message.as_deref().unwrap_or("Done");
             truncate_title(msg)
         }

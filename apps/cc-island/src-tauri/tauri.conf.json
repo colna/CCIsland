@@ -36,6 +36,8 @@
     "active": true,
     "targets": ["dmg", "nsis"],
     "icon": [
+      "icons/icon.icns",
+      "icons/icon.ico",
       "icons/icon.png"
     ],
     "category": "DeveloperTool",

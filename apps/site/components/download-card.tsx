@@ -14,11 +14,15 @@ function detectPlatform(): Platform {
 }
 
 export function DownloadCard() {
-  const [platform, setPlatform] = useState<Platform>("mac");
+  const [platform, setPlatform] = useState<Platform | null>(null);
 
   useEffect(() => {
     setPlatform(detectPlatform());
   }, []);
+
+  if (!platform) {
+    return <div className="hero-cta-group" style={{ minHeight: 100 }} />;
+  }
 
   if (platform === "win") {
     return (

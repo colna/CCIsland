@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, VecDeque}, sync::atomic::{AtomicU64, Ordering}, time::{SystemTime, UNIX_EPOCH}};
+use std::{collections::{HashMap, VecDeque}, sync::atomic::{AtomicU64, Ordering}};
 
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter};
@@ -8,9 +8,10 @@ static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 use crate::{
   shared_types::{
-    ApprovalDecision, ApprovalRequestData, HookEvent, HookResponse, HookSpecificOutput, LogEntry,
-    PanelState, PermissionDecision, QuestionItem, QuestionOption, QuestionRequestData,
-    SessionListItem, SessionSnapshot, TaskItem, ToolActivity,
+    now_ms, AppError, ApprovalDecision, ApprovalRequestData, Behavior, HookEvent, HookResponse,
+    HookSpecificOutput, LogEntry, PanelState, PermissionDecision, Phase, QuestionItem,
+    QuestionOption, QuestionRequestData, SessionListItem, SessionSnapshot, TaskItem, ToolActivity,
+    ToolStatus,
   },
   tray,
   SharedState,
@@ -27,7 +28,7 @@ pub struct HookRouter {
 #[derive(Clone, Default)]
 struct SessionInstance {
   is_active: bool,
-  phase: String,
+  phase: Phase,
   session_id: Option<String>,
   cwd: Option<String>,
   transcript_path: Option<String>,
@@ -42,7 +43,7 @@ struct SessionInstance {
 }
 
 impl HookRouter {
-  pub async fn handle(&self, event: HookEvent, app: &AppHandle, shared: &SharedState) -> Result<HookResponse, String> {
+  pub async fn handle(&self, event: HookEvent, app: &AppHandle, shared: &SharedState) -> Result<HookResponse, AppError> {
     let hook_name = event.hook_event_name.clone();
 
     self.update_session(&event).await;
@@ -63,8 +64,7 @@ impl HookRouter {
     match hook_name.as_str() {
       "PermissionRequest" => self.handle_permission_request(event, app, shared).await,
       "Notification" => {
-        app.emit("notification", json!({ "message": event.notification_message.unwrap_or_else(|| "Notification".into()) }))
-          .map_err(|e| e.to_string())?;
+        app.emit("notification", json!({ "message": event.notification_message.unwrap_or_else(|| "Notification".into()) }))?;
         Ok(HookResponse { hook_specific_output: None })
       }
       "Stop" => {
@@ -94,7 +94,7 @@ impl HookRouter {
 
     sessions
       .values()
-      .max_by_key(|session| (phase_priority(&session.phase), session.last_event_time.unwrap_or(0)))
+      .max_by_key(|session| (phase_priority(session.phase), session.last_event_time.unwrap_or(0)))
       .map(|session| session.snapshot())
       .unwrap_or_default()
   }
@@ -104,13 +104,13 @@ impl HookRouter {
     let mut items: Vec<SessionListItem> = sessions
       .iter()
       .filter_map(|(id, session)| {
-        if !session.is_active && session.phase == "idle" {
+        if !session.is_active && session.phase == Phase::Idle {
           return None;
         }
         Some(SessionListItem {
           session_id: id.clone(),
           cwd: session.cwd.clone(),
-          phase: session.phase.clone(),
+          phase: session.phase,
           last_message: session.last_message.clone(),
           tool_count: session.tool_count,
           is_active: session.is_active,
@@ -118,7 +118,7 @@ impl HookRouter {
       })
       .collect();
 
-    items.sort_by_key(|item| std::cmp::Reverse((phase_priority(&item.phase), item.tool_count)));
+    items.sort_by_key(|item| std::cmp::Reverse((phase_priority(item.phase), item.tool_count)));
     items
   }
 
@@ -150,12 +150,12 @@ impl HookRouter {
       if !session.is_active {
         continue;
       }
-      if session.phase != "thinking" && session.phase != "tool" {
+      if !matches!(session.phase, Phase::Thinking | Phase::Tool) {
         continue;
       }
       if let Some(last) = session.last_event_time {
         if now.saturating_sub(last) >= timeout_ms {
-          session.phase = "done".into();
+          session.phase = Phase::Done;
           session.last_message = Some("Session timed out".into());
           changed = true;
         }
@@ -171,7 +171,7 @@ impl HookRouter {
     let cutoff = now_ms().saturating_sub(5 * 60 * 1000);
 
     sessions.retain(|_id, session| {
-      if !session.is_active && session.phase == "done" {
+      if !session.is_active && session.phase == Phase::Done {
         session.last_event_time.unwrap_or(0) >= cutoff
       } else {
         true
@@ -179,12 +179,10 @@ impl HookRouter {
     });
   }
 
-  async fn emit_state(&self, app: &AppHandle, shared: &SharedState) -> Result<(), String> {
+  async fn emit_state(&self, app: &AppHandle, shared: &SharedState) -> Result<(), AppError> {
     let snapshot = self.get_state().await;
-    app.emit("state-update", &snapshot)
-      .map_err(|e| e.to_string())?;
-    app.emit("session-list", self.get_session_list().await)
-      .map_err(|e| e.to_string())?;
+    app.emit("state-update", &snapshot)?;
+    app.emit("session-list", self.get_session_list().await)?;
 
     // Sync tray title: show status text only when island is hidden, clear otherwise
     let panel_state = shared.window_controller.current_state().await;
@@ -195,12 +193,12 @@ impl HookRouter {
       tray::update_tray_title(app, "");
     }
     // Also sync tray icon color
-    tray::update_tray_icon(app, &snapshot.phase);
+    tray::update_tray_icon(app, snapshot.phase);
 
     Ok(())
   }
 
-  async fn auto_panel_for_event(&self, event: &HookEvent, app: &AppHandle, shared: &SharedState) -> Result<(), String> {
+  async fn auto_panel_for_event(&self, event: &HookEvent, app: &AppHandle, shared: &SharedState) -> Result<(), AppError> {
     match event.hook_event_name.as_str() {
       "PermissionRequest" => shared.window_controller.show(app, PanelState::Expanded).await,
       "SessionStart" | "UserPromptSubmit" => {
@@ -242,7 +240,7 @@ impl HookRouter {
     }
   }
 
-  async fn handle_permission_request(&self, event: HookEvent, app: &AppHandle, shared: &SharedState) -> Result<HookResponse, String> {
+  async fn handle_permission_request(&self, event: HookEvent, app: &AppHandle, shared: &SharedState) -> Result<HookResponse, AppError> {
     let id = event.tool_use_id.clone().unwrap_or_else(unique_id);
     let is_question = event.tool_name.as_deref() == Some("AskUserQuestion");
 
@@ -250,14 +248,14 @@ impl HookRouter {
     if !is_question && shared.auto_approve.load(std::sync::atomic::Ordering::Relaxed) {
       eprintln!("[HookRouter] 自动批准已启用，自动放行 tool={:?}", event.tool_name);
       return Ok(build_permission_response(ApprovalDecision {
-        behavior: "allow".into(),
+        behavior: Behavior::Allow,
         reason: Some("通过 CCIsland 自动批准".into()),
         updated_input: None,
       }));
     }
 
     if is_question {
-      let questions = extract_questions(event.tool_input.clone().unwrap_or(Value::Null));
+      let questions = extract_questions(event.tool_input.as_ref());
       let request = ApprovalRequestData {
         id: id.clone(),
         tool_name: "AskUserQuestion".into(),
@@ -272,21 +270,19 @@ impl HookRouter {
         "question-request",
         QuestionRequestData {
           id: id.clone(),
-          questions: questions.clone(),
+          questions,
           session_id: event.session_id.clone(),
           timestamp: now_ms(),
         },
-      )
-      .map_err(|e| e.to_string())?;
+      )?;
 
       let decision = receiver.await.unwrap_or(ApprovalDecision {
-        behavior: "allow".into(),
+        behavior: Behavior::Allow,
         reason: None,
         updated_input: None,
       });
 
-      app.emit("approval-dismissed", json!({ "id": id }))
-        .map_err(|e| e.to_string())?;
+      app.emit("approval-dismissed", json!({ "id": id }))?;
       if !shared.approval_manager.has_pending().await {
         let _ = shared.window_controller.show(app, PanelState::Compact).await;
       }
@@ -297,33 +293,31 @@ impl HookRouter {
       id: id.clone(),
       tool_name: event.tool_name.clone().unwrap_or_else(|| "Unknown".into()),
       tool_input: event.tool_input.clone().unwrap_or(Value::Null),
-      description: describe_tool_input(event.tool_name.clone(), event.tool_input.clone()),
+      description: describe_tool_input(event.tool_name.as_deref(), event.tool_input.as_ref()),
       timestamp: now_ms(),
       session_id: event.session_id.clone(),
     };
 
-    let receiver = shared.approval_manager.wait_for_decision(request.clone()).await;
-    app.emit("approval-request", request.clone())
-      .map_err(|e| e.to_string())?;
+    app.emit("approval-request", &request)?;
+    let receiver = shared.approval_manager.wait_for_decision(request).await;
 
     eprintln!("[HookRouter] waiting for approval id={}", id);
     let decision = match receiver.await {
       Ok(decision) => {
-        eprintln!("[HookRouter] approval resolved id={} behavior={}", id, decision.behavior);
+        eprintln!("[HookRouter] approval resolved id={} behavior={:?}", id, decision.behavior);
         decision
       }
       Err(error) => {
         eprintln!("[HookRouter] approval receiver dropped id={} error={}", id, error);
         ApprovalDecision {
-          behavior: "allow".into(),
+          behavior: Behavior::Allow,
           reason: None,
           updated_input: None,
         }
       }
     };
 
-    app.emit("approval-dismissed", json!({ "id": id }))
-      .map_err(|e| e.to_string())?;
+    app.emit("approval-dismissed", json!({ "id": id }))?;
     if !shared.approval_manager.has_pending().await {
       let _ = shared.window_controller.show(app, PanelState::Compact).await;
     }
@@ -345,16 +339,16 @@ impl SessionInstance {
       self.session_id = Some(event.session_id.clone());
     }
     if event.cwd.is_some() {
-      self.cwd = event.cwd.clone();
+      self.cwd.clone_from(&event.cwd);
     }
     if event.transcript_path.is_some() {
-      self.transcript_path = event.transcript_path.clone();
+      self.transcript_path.clone_from(&event.transcript_path);
     }
 
     match event.hook_event_name.as_str() {
       "SessionStart" => {
         self.is_active = true;
-        self.phase = "thinking".into();
+        self.phase = Phase::Thinking;
         self.start_time = Some(now_ms());
         self.current_tool = None;
         self.recent_tools.clear();
@@ -365,16 +359,16 @@ impl SessionInstance {
       }
       "UserPromptSubmit" => {
         self.is_active = true;
-        self.phase = "thinking".into();
+        self.phase = Phase::Thinking;
         self.current_tool = None;
         self.last_message = None;
       }
       "PreToolUse" => {
         self.is_active = true;
-        self.phase = "tool".into();
+        self.phase = Phase::Tool;
         self.tool_count += 1;
         let tool_name = event.tool_name.clone().unwrap_or_else(|| "Unknown".into());
-        let description = describe_tool_input(event.tool_name.clone(), event.tool_input.clone());
+        let description = describe_tool_input(event.tool_name.as_deref(), event.tool_input.as_ref());
         self.activity_log.push(LogEntry { tool_name: tool_name.clone(), description: None });
         self.current_tool = Some(ToolActivity {
           id: event.tool_use_id.clone().unwrap_or_else(unique_id),
@@ -383,16 +377,16 @@ impl SessionInstance {
           start_time: now_ms(),
           end_time: None,
           duration: None,
-          status: "running".into(),
+          status: ToolStatus::Running,
         });
       }
       "PostToolUse" => {
-        self.phase = "thinking".into();
-        if self.current_tool.as_ref().map(|tool| tool.id.clone()) == event.tool_use_id {
+        self.phase = Phase::Thinking;
+        if self.current_tool.as_ref().map(|t| t.id.as_str()) == event.tool_use_id.as_deref() {
           if let Some(current) = self.current_tool.as_mut() {
             current.end_time = Some(now_ms());
             current.duration = current.end_time.map(|end_time| ((end_time - current.start_time) as f64) / 1000.0);
-            current.status = "completed".into();
+            current.status = ToolStatus::Completed;
             self.activity_log.push(LogEntry {
               tool_name: current.tool_name.clone(),
               description: Some(current.description.clone()),
@@ -406,7 +400,7 @@ impl SessionInstance {
         }
       }
       "PermissionRequest" => {
-        self.phase = "tool".into();
+        self.phase = Phase::Tool;
       }
       "TaskCreated" | "TaskCompleted" => {
         if let Some(tasks) = event.tool_input.as_ref().and_then(|input| input.get("todos")).and_then(|todos| todos.as_array()) {
@@ -419,7 +413,7 @@ impl SessionInstance {
         }
       }
       "Stop" => {
-        self.phase = "done".into();
+        self.phase = Phase::Done;
         self.last_message = event.last_assistant_message.as_ref().and_then(|message| {
           message
             .lines()
@@ -430,7 +424,7 @@ impl SessionInstance {
       }
       "SessionEnd" => {
         self.is_active = false;
-        self.phase = "done".into();
+        self.phase = Phase::Done;
         self.current_tool = None;
       }
       _ => {}
@@ -440,7 +434,7 @@ impl SessionInstance {
   fn snapshot(&self) -> SessionSnapshot {
     SessionSnapshot {
       is_active: self.is_active,
-      phase: if self.phase.is_empty() { "idle".into() } else { self.phase.clone() },
+      phase: self.phase,
       session_id: self.session_id.clone(),
       cwd: self.cwd.clone(),
       start_time: self.start_time,
@@ -467,7 +461,8 @@ fn build_permission_response(decision: ApprovalDecision) -> HookResponse {
   }
 }
 
-pub(crate) fn extract_questions(input: Value) -> Vec<QuestionItem> {
+pub(crate) fn extract_questions(input: Option<&Value>) -> Vec<QuestionItem> {
+  let Some(input) = input else { return vec![] };
   input
     .get("questions")
     .and_then(|value| value.as_array())
@@ -491,9 +486,10 @@ pub(crate) fn extract_questions(input: Value) -> Vec<QuestionItem> {
     .unwrap_or_default()
 }
 
-fn describe_tool_input(tool_name: Option<String>, tool_input: Option<Value>) -> String {
-  let payload = tool_input.unwrap_or(Value::Null);
-  match tool_name.as_deref() {
+fn describe_tool_input(tool_name: Option<&str>, tool_input: Option<&Value>) -> String {
+  let null = Value::Null;
+  let payload = tool_input.unwrap_or(&null);
+  match tool_name {
     Some("AskUserQuestion") => "Claude needs your input".into(),
     Some("Bash") => {
       let cmd = payload.get("command").and_then(|v| v.as_str()).unwrap_or("");
@@ -569,21 +565,14 @@ fn shorten_path(path: &str) -> String {
   }
 }
 
-fn phase_priority(phase: &str) -> u8 {
+fn phase_priority(phase: Phase) -> u8 {
   match phase {
-    "tool" => 5,
-    "thinking" => 4,
-    "responding" => 3,
-    "done" => 2,
-    _ => 1,
+    Phase::Tool => 5,
+    Phase::Thinking => 4,
+    Phase::Responding => 3,
+    Phase::Done => 2,
+    Phase::Idle => 1,
   }
-}
-
-fn now_ms() -> u64 {
-  SystemTime::now()
-    .duration_since(UNIX_EPOCH)
-    .map(|duration| duration.as_millis() as u64)
-    .unwrap_or(0)
 }
 
 fn unique_id() -> String {
@@ -621,5 +610,74 @@ async fn send_im_webhook_notification(message: &str) {
     Ok(Ok(output)) => eprintln!("[IM] curl failed: {}", String::from_utf8_lossy(&output.stderr)),
     Ok(Err(e)) => eprintln!("[IM] failed to spawn curl: {}", e),
     Err(e) => eprintln!("[IM] task failed: {}", e),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use serde_json::json;
+
+  #[test]
+  fn phase_priority_ordering() {
+    assert!(phase_priority(Phase::Tool) > phase_priority(Phase::Thinking));
+    assert!(phase_priority(Phase::Thinking) > phase_priority(Phase::Responding));
+    assert!(phase_priority(Phase::Responding) > phase_priority(Phase::Done));
+    assert!(phase_priority(Phase::Done) > phase_priority(Phase::Idle));
+  }
+
+  #[test]
+  fn describe_bash_command() {
+    let input = json!({"command": "ls -la"});
+    let result = describe_tool_input(Some("Bash"), Some(&input));
+    assert_eq!(result, "$ ls -la");
+  }
+
+  #[test]
+  fn describe_bash_truncates_long_command() {
+    let long_cmd = "x".repeat(200);
+    let input = json!({"command": long_cmd});
+    let result = describe_tool_input(Some("Bash"), Some(&input));
+    assert!(result.ends_with("..."));
+  }
+
+  #[test]
+  fn describe_unknown_tool_with_no_input() {
+    let result = describe_tool_input(None, None);
+    assert_eq!(result, "Unknown tool");
+  }
+
+  #[test]
+  fn shorten_path_preserves_short() {
+    let result = shorten_path("src/main.rs");
+    assert_eq!(result, "src/main.rs");
+  }
+
+  #[test]
+  fn shorten_path_truncates_deep() {
+    // Use a path that doesn't start with HOME to avoid ~ substitution
+    let result = shorten_path("/opt/projects/bar/src/main.rs");
+    assert_eq!(result, ".../src/main.rs");
+  }
+
+  #[test]
+  fn extract_questions_valid_input() {
+    let input = json!({
+      "questions": [{
+        "question": "Pick one",
+        "options": [{"label": "A"}, {"label": "B"}],
+        "multiSelect": false
+      }]
+    });
+    let result = extract_questions(Some(&input));
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].question, "Pick one");
+    assert_eq!(result[0].options.len(), 2);
+  }
+
+  #[test]
+  fn extract_questions_empty() {
+    assert!(extract_questions(Some(&json!({}))).is_empty());
+    assert!(extract_questions(None).is_empty());
   }
 }

@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { siteConfig } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: "Download",
+  description: "Download CCIsland for macOS and Windows — get set up in minutes.",
+};
 
 export default function DownloadPage() {
   return (
@@ -54,6 +60,7 @@ export default function DownloadPage() {
               <li>1. Launch CCIsland.</li>
               <li>2. Use the tray menu to set up Claude Code hooks.</li>
               <li>3. Run Claude Code normally and watch the floating island update in real time.</li>
+              <li>4. <strong>Optional:</strong> Type <code className="rounded bg-black/5 px-1.5 py-0.5 text-[13px]">/setup-im-hook</code> in Claude Code to enable IM notifications (Feishu, DingTalk, Slack, etc.).</li>
             </ol>
             <div className="mt-6">
               <Link href="/privacy" className="text-[15px] text-[#0066cc] underline-offset-4 hover:underline">
