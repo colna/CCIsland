@@ -118,6 +118,60 @@ Edit `~/.claude/settings.json`:
 
 ---
 
+## IM Webhook Notifications (optional)
+
+Push a message to your IM group (Feishu / DingTalk / WeCom / Slack / custom webhook) every time Claude Code finishes a task. CCIsland's own Stop event uses the same channel. All credentials are read from environment variables — **the repo never stores webhook URLs**.
+
+### One-shot setup
+
+Run this inside a Claude Code session rooted at this repo:
+
+```
+/setup-im-hook
+```
+
+The project-level skill will ask you to pick a platform, paste the webhook URL, and append the two env vars to `~/.zshrc` or `~/.bashrc`.
+
+### Manual setup
+
+1. Export in your shell rc:
+
+   ```sh
+   export IM_WEBHOOK_URL="https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxx"
+   # Optional: custom payload template; omit to use the Feishu default
+   export IM_WEBHOOK_PAYLOAD_TEMPLATE='{"msg_type":"text","content":{"text":"Claude Code task done✅\n{message}"}}'
+   ```
+
+2. `source ~/.zshrc` (or open a new terminal)
+3. **Restart** Claude Code / CCIsland so the new process inherits the env vars
+
+### Payload templates
+
+`{message}` is the placeholder — the hook replaces it with the last assistant message (JSON-escaped):
+
+| Platform | payload template |
+|---|---|
+| Feishu / Lark (default, can omit) | `{"msg_type":"text","content":{"text":"Claude Code task done✅\n{message}"}}` |
+| DingTalk | `{"msgtype":"text","text":{"content":"Claude Code task done✅\n{message}"}}` |
+| WeCom | `{"msgtype":"text","text":{"content":"Claude Code task done✅\n{message}"}}` |
+| Slack / Discord | `{"text":"Claude Code task done✅\n{message}"}` |
+
+### Verify
+
+```bash
+curl -s -X POST "$IM_WEBHOOK_URL" \
+  -H 'Content-Type: application/json' \
+  -d '{"msg_type":"text","content":{"text":"test from CCIsland"}}'
+```
+
+(Swap the `-d` body for non-Feishu platforms.)
+
+### Disable
+
+Delete the `IM_WEBHOOK_URL` export from the rc file and restart Claude Code / CCIsland. The hook script exits silently when the URL is unset — no error.
+
+---
+
 ## Panel States
 
 | State | Description | Trigger |

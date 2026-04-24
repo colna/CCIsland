@@ -8,3 +8,6 @@ out/
 .next/
 .vercel/
 .turbo/
+
+# 兼容软链接,供已启动的 Claude Code 会话继续用旧 hook 路径; 不入仓库
+.claude/hooks/feishu-notify.py

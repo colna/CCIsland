@@ -118,6 +118,60 @@ pnpm tauri:dev
 
 ---
 
+## IM 群通知（可选）
+
+配置后，Claude Code 完成任务会自动推送消息到飞书 / 钉钉 / 企业微信 / Slack 等 IM 群；CCIsland 自身的 Stop 事件也走同一个通道。所有凭证从环境变量读取，**仓库里不留 webhook URL**。
+
+### 一键配置
+
+在 Claude Code 会话中对本仓库运行：
+
+```
+/setup-im-hook
+```
+
+项目 skill 会引导你选择 IM 平台、粘贴 webhook URL，并把两个环境变量追加到 `~/.zshrc` 或 `~/.bashrc`。
+
+### 手动配置
+
+1. 在 shell rc 里 export：
+
+   ```sh
+   export IM_WEBHOOK_URL="https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxx"
+   # 可选: 自定义 payload 模板; 缺省为飞书格式
+   export IM_WEBHOOK_PAYLOAD_TEMPLATE='{"msg_type":"text","content":{"text":"Claude Code 任务完成✅\n{message}"}}'
+   ```
+
+2. `source ~/.zshrc`（或重开终端）
+3. **重启** Claude Code / CCIsland 让新环境变量生效（进程启动时才会继承 env）
+
+### 平台 payload 模板
+
+消息占位符固定为 `{message}`，脚本会替换为最后一条 assistant 文本（已做 JSON 转义）：
+
+| 平台 | payload 模板 |
+|---|---|
+| 飞书 / Lark（默认，可省略） | `{"msg_type":"text","content":{"text":"Claude Code 任务完成✅\n{message}"}}` |
+| 钉钉 | `{"msgtype":"text","text":{"content":"Claude Code 任务完成✅\n{message}"}}` |
+| 企业微信 | `{"msgtype":"text","text":{"content":"Claude Code 任务完成✅\n{message}"}}` |
+| Slack / Discord | `{"text":"Claude Code 任务完成✅\n{message}"}` |
+
+### 验证
+
+```bash
+curl -s -X POST "$IM_WEBHOOK_URL" \
+  -H 'Content-Type: application/json' \
+  -d '{"msg_type":"text","content":{"text":"test from CCIsland"}}'
+```
+
+（非飞书平台请把 `-d` 换成对应模板。）
+
+### 关闭通知
+
+从 rc 文件删除 `IM_WEBHOOK_URL` 的 export 行，重启 Claude Code / CCIsland 即可。hook 脚本在未设置 URL 时静默跳过，不会报错。
+
+---
+
 ## 面板状态
 
 | 状态 | 描述 | 触发条件 |

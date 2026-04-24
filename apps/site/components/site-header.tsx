@@ -12,6 +12,7 @@ export function SiteHeader() {
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-white/78">
           <a href="#features">Features</a>
           <a href="#how-it-works">How it works</a>
+          <a href="#notifications">Notifications</a>
           <Link href="/download">Download</Link>
           <a href="https://github.com/colna/CCIsland" target="_blank" rel="noreferrer">GitHub</a>
         </nav>
