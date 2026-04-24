@@ -29,8 +29,10 @@ let chatHistory = document.getElementById('chat-history')!;
 let terminalBtn = document.getElementById('terminal-btn');
 let latestState: any = null; // 缓存最新状态用于渲染日志
 let latestSessions: any[] = [];
-let latestChatSessionId: string | null = null;
+let renderedChatSessionId: string | null = null;
+let pendingChatSessionId: string | null = null;
 let chatHistoryRequestToken = 0;
+let answeredQuestionIds = new Set<string>();
 
 // ── 自动批准开关 ──
 
@@ -174,7 +176,7 @@ window.claude.onStateUpdate((state: any) => {
   // 展开态: 刷新日志和聊天历史
   if (!expandedView.classList.contains('hidden')) {
     renderLog(state);
-    if (state.sessionId !== latestChatSessionId) {
+    if (state.sessionId !== renderedChatSessionId && state.sessionId !== pendingChatSessionId) {
       refreshChatHistory(state.sessionId);
     }
   }
@@ -365,7 +367,7 @@ window.claude.onApprovalRequest((data: any) => {
 
 window.claude.onQuestionRequest((data: any) => {
   console.log('[app] questionRequest:', data);
-  if (document.getElementById('question-' + data.id)) return;
+  if (answeredQuestionIds.has(data.id) || document.getElementById('question-' + data.id)) return;
   compactView.classList.add('hidden');
   expandedView.classList.remove('hidden');
   statusDot.className = 'status-dot pending';
@@ -483,8 +485,12 @@ window.claude.onQuestionRequest((data: any) => {
         finalAnswers[qKey] = selections[qKey] || '';
       }
     }
-    window.claude.answerQuestion(data.id, finalAnswers, data.questions);
+    answeredQuestionIds.add(data.id);
     card.remove();
+    window.claude.answerQuestion(data.id, finalAnswers, data.questions).catch(function(error: any) {
+      console.error('[app] answerQuestion failed', error);
+      answeredQuestionIds.delete(data.id);
+    });
   }
 
   // 检查所有单选问题是否已有选择，若是则自动提交
@@ -573,14 +579,22 @@ function renderLog(state: any) {
 }
 
 function refreshChatHistory(sessionId?: string | null) {
+  let targetSessionId = sessionId || null;
   let requestToken = ++chatHistoryRequestToken;
-  latestChatSessionId = sessionId || null;
+  pendingChatSessionId = targetSessionId;
 
-  window.claude.getChatHistory(sessionId || undefined).then(function(messages: any[]) {
+  chatHistory.classList.add('hidden');
+  chatHistory.innerHTML = '';
+
+  window.claude.getChatHistory(targetSessionId || undefined).then(function(messages: any[]) {
     if (requestToken !== chatHistoryRequestToken) return;
+    pendingChatSessionId = null;
+    renderedChatSessionId = targetSessionId;
     renderChatHistory(messages || []);
   }).catch(function(error: any) {
     if (requestToken !== chatHistoryRequestToken) return;
+    pendingChatSessionId = null;
+    renderedChatSessionId = targetSessionId;
     console.error('[app] getChatHistory failed', error);
     renderChatHistory([]);
   });

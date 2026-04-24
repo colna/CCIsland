@@ -608,12 +608,21 @@ body {
 .session-list {
   margin-bottom: 8px;
   flex-shrink: 0;
+  max-height: 126px;
+  overflow-y: auto;
 
   &.has-sessions {
     background: @bg-white-06;
     border-radius: 12px;
     padding: 4px;
     margin-bottom: 10px;
+  }
+
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
   }
 
   .session-row {
@@ -656,7 +665,8 @@ body {
 .chat-history {
   margin-top: 8px;
   flex-shrink: 0;
-  max-height: 120px;
+  min-height: 72px;
+  max-height: 132px;
   overflow-y: auto;
   background: @bg-white-06;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -720,8 +730,9 @@ body {
 
 .log-list {
   margin-top: 8px;
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: 84px;
+  max-height: 132px;
   overflow-y: auto;
 
   // Thin scrollbar (Apple-like)
