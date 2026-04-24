@@ -89,13 +89,26 @@ jobs:
         with:
           path: artifacts
 
+      - name: List artifacts
+        run: find artifacts -type f | head -50
+
       - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: true
-          name: 'CCIsland ${{ github.ref_name }}'
-          body: 'See the assets to download and install this version.'
-          files: |
-            artifacts/**/*.dmg
-            artifacts/**/*.app.tar.gz
-            artifacts/**/*-setup.exe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Collect release assets
+          FILES=()
+          for f in $(find artifacts -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*-setup.exe' \)); do
+            FILES+=("$f")
+          done
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "::error::No release assets found"
+            exit 1
+          fi
+          echo "Uploading ${#FILES[@]} assets for ${TAG}"
+          gh release create "${TAG}" "${FILES[@]}" \
+            --draft \
+            --title "CCIsland ${TAG}" \
+            --notes "See the assets to download and install this version." \
+            --repo "${{ github.repository }}"
