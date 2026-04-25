@@ -112,6 +112,5 @@ jobs:
           echo "Uploading ${#FILES[@]} assets for ${TAG}"
           gh release create "${TAG}" "${FILES[@]}" \
             --verify-tag \
-            --draft \
             --title "CCIsland ${TAG}" \
             --notes "See the assets to download and install this version."
