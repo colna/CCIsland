@@ -84,9 +84,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -95,12 +92,13 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f | head -50
 
-      - name: Create Release
+      - name: Create Release & Upload Assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF_NAME}"
-          # Collect release assets
+
+          # Collect release asset paths
           FILES=()
           for f in $(find artifacts -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*-setup.exe' \)); do
             FILES+=("$f")
@@ -109,8 +107,26 @@ jobs:
             echo "::error::No release assets found"
             exit 1
           fi
-          echo "Uploading ${#FILES[@]} assets for ${TAG}"
-          gh release create "${TAG}" "${FILES[@]}" \
-            --verify-tag \
-            --title "CCIsland ${TAG}" \
-            --notes "See the assets to download and install this version."
+
+          # Create release via REST API (avoids gh release create untagged bug)
+          echo "Creating release for ${TAG} with ${#FILES[@]} assets..."
+          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases" \
+            -f tag_name="${TAG}" \
+            -f name="CCIsland ${TAG}" \
+            -f body="See the assets to download and install this version." \
+            -F draft=false \
+            --jq '.id')
+          echo "Created release ID: ${RELEASE_ID}"
+
+          # Upload each asset via REST API
+          UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets"
+          for f in "${FILES[@]}"; do
+            FNAME=$(basename "$f")
+            echo "Uploading ${FNAME}..."
+            curl -sS -X POST \
+              -H "Authorization: token ${GH_TOKEN}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@${f}" \
+              "${UPLOAD_URL}?name=${FNAME}" | jq -r '"  -> \(.name) (\(.size) bytes)"'
+          done
+          echo "Release published: https://github.com/${{ github.repository }}/releases/tag/${TAG}"
