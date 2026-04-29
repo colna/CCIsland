@@ -1,6 +1,6 @@
 {
   "name": "@ccisland/desktop",
-  "version": "0.3.0",
+  "version": "0.3.7",
   "private": true,
   "scripts": {
     "less": "lessc src/renderer/styles.less dist/renderer/styles.css",
